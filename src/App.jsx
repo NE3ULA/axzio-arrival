@@ -1,6 +1,10 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { newSession, loadSession, saveSession, clearStoredSession } from "./store.js";
 import { exportCardImage } from "./exportCard.js";
+import { api } from "./beta.js";
+import Gate from "./gate.jsx";
+
+const Admin = lazy(() => import("./admin.jsx"));
 
 /* AXZIO | ARRIVAL — V0.1
    A single guided journey: Awareness → Arrival → Choice → Action.
@@ -89,16 +93,33 @@ function Card({ session }) {
   );
 }
 
-export default function App() {
+function Journey() {
   const [session, setSession] = useState(() => loadSession() || newSession());
   const [confirmNew, setConfirmNew] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [showPrompts, setShowPrompts] = useState(false);
   const [exportNote, setExportNote] = useState("");
+  const [me, setMe] = useState(null);
+  const startedLoggedFor = useRef("");
+
+  useEffect(() => {
+    api.getSession().then((s) => setMe(s ? s.user : null)).catch(() => {});
+  }, []);
 
   // Persist every change — closing or refreshing never loses progress.
+  // Also records the content-free "journey started" beta metric, once
+  // per journey, the first time a draft gains any content.
   useEffect(() => {
     saveSession(session);
+    const hasContent = session.state || session.matters || session.choice || session.step;
+    if (session.status === "draft" && hasContent && startedLoggedFor.current !== session.id) {
+      startedLoggedFor.current = session.id;
+      try {
+        api.logEvent("journey_started");
+      } catch {
+        /* metrics are best-effort */
+      }
+    }
   }, [session]);
 
   const update = (patch) => setSession((s) => ({ ...s, ...patch }));
@@ -132,7 +153,14 @@ export default function App() {
     else if (stage === 4) update({ stage: 3, cstep: 2 });
   };
 
-  const begin = () => update({ status: "begun", begunAt: Date.now() });
+  const begin = () => {
+    try {
+      api.logEvent("journey_completed");
+    } catch {
+      /* metrics are best-effort */
+    }
+    update({ status: "begun", begunAt: Date.now() });
+  };
   const complete = () => update({ status: "completed", completedAt: Date.now() });
 
   const startNew = () => {
@@ -165,7 +193,7 @@ export default function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app" data-testid="journey">
       <div className="sky" aria-hidden="true">
         <div className="sky-glow" />
         <div className="sky-stars" />
@@ -352,18 +380,173 @@ export default function App() {
                   {confirmNew ? "Tap again to confirm — this replaces the card above" : "Start a new session"}
                 </button>
               </div>
+              <FeedbackForm sessionId={session.id} />
             </section>
           </main>
         )}
 
         <footer className="foot">
           <span className="foot-note">Private by design — everything stays on this device.</span>
+          <span className="foot-note">AXZIO | ARRIVAL — PRIVATE BETA · © 2026 NE3ULA. All rights reserved.</span>
+          {me ? <span className="foot-note">Beta tester: {me.email}</span> : null}
           <button type="button" className="foot-link" data-testid="clear-data" onClick={clearData}>
             {confirmClear ? "Tap again to erase everything" : "Clear my data"}
           </button>
-          <span className="foot-build">ARRIVAL V0.1 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <button type="button" className="foot-link" data-testid="sign-out" onClick={() => api.signOut()}>
+            Sign out
+          </button>
+          <span className="foot-build">ARRIVAL V0.2 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>
+  );
+}
+
+/* Optional post-journey beta feedback. Never interrupts the journey:
+   it appears only on the card screen, after BEGIN. Submits the minimum
+   (rating + whatever the tester chooses to write) — never journey content. */
+function FeedbackForm({ sessionId }) {
+  const doneKey = `arrival-fb-done:${sessionId}`;
+  const [done, setDone] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem(doneKey));
+    } catch {
+      return false;
+    }
+  });
+  const [open, setOpen] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [text, setText] = useState("");
+  const [bug, setBug] = useState("");
+  const [followup, setFollowup] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  if (done && !open) {
+    return (
+      <div className="feedback-box">
+        <p className="hint center" data-testid="fb-thanks">
+          Thanks — your feedback was sent.
+        </p>
+        <button type="button" className="text-btn center-btn" data-testid="fb-more" onClick={() => setOpen(true)}>
+          Send more feedback
+        </button>
+      </div>
+    );
+  }
+
+  const submit = async () => {
+    setBusy(true);
+    setFailed(false);
+    try {
+      await api.submitFeedback({
+        clarity_rating: rating || null,
+        feedback: text.trim() || null,
+        bug_report: bug.trim() || null,
+        followup_ok: followup,
+      });
+      try {
+        localStorage.setItem(doneKey, "1");
+      } catch {
+        /* non-essential */
+      }
+      setDone(true);
+      setOpen(false);
+      setRating(0);
+      setText("");
+      setBug("");
+      setFollowup(false);
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="feedback-box" data-testid="fb-form">
+      <h2 className="fb-q">Did this experience help you gain clarity?</h2>
+      <div className="fb-stars" role="radiogroup" aria-label="Clarity rating, 1 to 5">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={rating === n}
+            data-testid={`fb-rate-${n}`}
+            className={`fb-star${rating >= n ? " on" : ""}`}
+            onClick={() => setRating(n)}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <label className="field-label" htmlFor="fb-text">
+        Anything you'd like us to know? <span className="optional">(optional)</span>
+      </label>
+      <textarea
+        id="fb-text"
+        data-testid="fb-text"
+        className="textarea"
+        rows={3}
+        maxLength={1000}
+        placeholder="What worked, what didn't…"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <label className="field-label" htmlFor="fb-bug">
+        Bug report <span className="optional">(optional)</span>
+      </label>
+      <textarea
+        id="fb-bug"
+        data-testid="fb-bug"
+        className="textarea"
+        rows={2}
+        maxLength={1000}
+        placeholder="Anything break or look wrong?"
+        value={bug}
+        onChange={(e) => setBug(e.target.value)}
+      />
+      <label className="check-row">
+        <input type="checkbox" data-testid="fb-followup" checked={followup} onChange={(e) => setFollowup(e.target.checked)} />
+        <span>You may contact me to follow up on this feedback.</span>
+      </label>
+      <div className="action-col">
+        <button type="button" className="btn btn-ghost" data-testid="fb-submit" disabled={busy} onClick={submit}>
+          Send feedback
+        </button>
+      </div>
+      {failed && <p className="error-note">Feedback couldn't be sent. Please try again.</p>}
+      <p className="hint center" style={{ marginTop: 10 }}>
+        Feedback goes to the beta team. Your journey answers never leave this device.
+      </p>
+    </div>
+  );
+}
+
+/* Root: the admin interface lives at #/admin (code-split, and every admin
+   operation is authorized server-side). Everything else is the journey,
+   behind the beta gate. */
+export default function Root() {
+  const [adminRoute, setAdminRoute] = useState(
+    () => typeof window !== "undefined" && window.location.hash.startsWith("#/admin")
+  );
+  useEffect(() => {
+    const onHash = () => setAdminRoute(window.location.hash.startsWith("#/admin"));
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  if (adminRoute) {
+    return (
+      <Suspense fallback={null}>
+        <Admin />
+      </Suspense>
+    );
+  }
+  return (
+    <Gate>
+      <Journey />
+    </Gate>
   );
 }

@@ -511,3 +511,225 @@ body {
     grid-template-columns: 1fr 1fr 1fr;
   }
 }
+
+/* ---- V0.2 beta: gate, panels, admin, feedback ---- */
+.input {
+  width: 100%;
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  padding: 16px;
+  margin: 10px 0 6px;
+}
+.panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+.panel-meta {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--faint);
+  letter-spacing: 0.06em;
+}
+.agreement-body {
+  white-space: pre-wrap;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--mist);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(4, 6, 15, 0.55);
+  padding: 14px 16px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 8px 0;
+  overflow-wrap: break-word;
+}
+.check-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 12px 2px;
+  cursor: pointer;
+}
+.check-row input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  margin-top: 1px;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+.error-note {
+  color: #ff9db0;
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 14px 0 0;
+}
+.ok-note {
+  color: #8df5c8;
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 12px 0 0;
+}
+
+/* ---- feedback ---- */
+.feedback-box {
+  margin-top: 34px;
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+  display: flex;
+  flex-direction: column;
+}
+.fb-q {
+  font-size: 19px;
+  font-weight: 650;
+  text-align: center;
+  margin: 0 0 14px;
+}
+.fb-stars {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.fb-star {
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  color: var(--mist);
+  background: rgba(10, 20, 52, 0.45);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.fb-star.on {
+  color: #03101f;
+  background: linear-gradient(135deg, #7dd7fb, var(--cyan));
+  border-color: var(--cyan);
+  box-shadow: 0 0 14px rgba(86, 200, 245, 0.4);
+}
+
+/* ---- admin ---- */
+.admin-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 26px 20px 60px;
+  color: var(--ink);
+  font-family: var(--font);
+}
+.admin-section {
+  margin-top: 34px;
+}
+.admin-section h2 {
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin: 0 0 14px;
+}
+.admin-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.admin-row .input {
+  flex: 1;
+  min-width: 180px;
+  width: auto;
+}
+.adm-days {
+  flex: 0 0 90px !important;
+  min-width: 90px !important;
+}
+.invite-link {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 13.5px;
+  color: var(--cyan);
+  margin-top: 6px;
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.metric {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  padding: 14px;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.metric span {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 14px;
+}
+.admin-table th {
+  text-align: left;
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.admin-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid rgba(120, 180, 255, 0.08);
+  color: var(--mist);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.admin-table td:first-child {
+  color: var(--ink);
+}
+.mini-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 13px;
+  cursor: pointer;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+.mini-btn.danger {
+  color: #ff9db0;
+  border-color: rgba(255, 157, 176, 0.4);
+}
+.adm-actions {
+  white-space: nowrap;
+}
+.faint {
+  color: var(--faint) !important;
+}

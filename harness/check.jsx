@@ -12,6 +12,7 @@ global.window = dom.window;
 global.document = dom.window.document;
 Object.defineProperty(global, "navigator", { value: dom.window.navigator, configurable: true });
 global.localStorage = dom.window.localStorage;
+global.sessionStorage = dom.window.sessionStorage;
 global.HTMLElement = dom.window.HTMLElement;
 global.HTMLCanvasElement = dom.window.HTMLCanvasElement;
 // Use jsdom's URL/Blob/File so the export path's stubs apply consistently
@@ -59,6 +60,13 @@ const { createRoot } = await import("react-dom/client");
 const { act } = await import("react-dom/test-utils");
 const { default: App } = await import("../src/App.jsx");
 const { STORAGE_KEY } = await import("../src/store.js");
+const { setBackend } = await import("../src/beta.js");
+const { makeFakeBackend } = await import("./fake-backend.js");
+
+// The journey now sits behind the beta gate: install a fake backend in
+// which the tester is signed in, has active access, and has already
+// accepted the agreement — so the gate opens straight to the journey.
+setBackend(makeFakeBackend().backend);
 
 let passed = 0;
 let failed = 0;
@@ -86,12 +94,20 @@ function type(el, value) {
     el.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
   });
 }
-function mount() {
+async function flush(times = 4) {
+  for (let i = 0; i < times; i++) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+  }
+}
+async function mount() {
   document.body.innerHTML = '<div id="root"></div>';
   const root = createRoot(document.getElementById("root"));
   act(() => {
     root.render(React.createElement(App));
   });
+  await flush();
   return root;
 }
 const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -99,7 +115,7 @@ const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY));
 console.log("ARRIVAL acceptance harness");
 // Fresh start
 localStorage.clear();
-let root = mount();
+let root = await mount();
 
 // 1–2. Opens to Stage 1, state selection gates Continue
 check("stage 1 question shown", document.body.textContent.includes("Where are you right now?"));
@@ -144,7 +160,7 @@ check("session persisted as draft at stage 4", stored().status === "draft" && st
 
 // 8. Close + reopen mid-journey — progress intact
 act(() => root.unmount());
-root = mount();
+root = await mount();
 check("reopen resumes at the card (stage 4)", !!tid("identity-card") && !!tid("begin"));
 
 // Edit path from the card
@@ -164,7 +180,7 @@ check("stored status is begun", stored().status === "begun");
 
 // Reopen on a begun session → lands on the card home
 act(() => root.unmount());
-root = mount();
+root = await mount();
 check("reopen on begun session shows card home", !!tid("complete") && !!tid("identity-card"));
 
 // Export wiring (canvas stubbed) → saved note

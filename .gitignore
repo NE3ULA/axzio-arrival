@@ -3,3 +3,4 @@ dist
 .DS_Store
 *.local
 harness/check.mjs
+harness/check-beta.mjs

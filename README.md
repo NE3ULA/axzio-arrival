@@ -23,6 +23,46 @@ no cloud sync, no AI, no analytics. It validates one hypothesis — *can a
 simple, structured experience help someone move from uncertainty into
 clarity, self-authorship, and intentional action?*
 
+## V0.2 — Private Beta (branch `beta`)
+
+The `beta` branch wraps the unchanged V0.1 journey in an invitation-only
+beta: **Protection → Access → Consent → Experience → Feedback.**
+
+- **Access** — a separate, isolated Supabase project (never the production
+  AXZIO project). Testers sign in with a verified email; access exists only
+  after redeeming a single-use, expiring invitation whose email matches
+  the sign-in email. Tokens are stored server-side as SHA-256 hashes only.
+  All enforcement is server-side Row Level Security — a shared URL alone
+  grants nothing, and browser storage plays no part in access decisions.
+- **Consent** — before the journey, each tester must accept the versioned
+  Beta Testing Agreement ("I Agree & Join Beta", unchecked boxes, 18+
+  confirmation). The acceptance is recorded server-side with the agreement
+  version and a server-generated timestamp; the exact accepted text stays
+  retrievable from `beta_agreements` (versions are immutable).
+- **Privacy** — journey answers and Identity State Cards still live only
+  in the tester's browser localStorage. The server holds only access,
+  consent, voluntary feedback, and content-free usage counts.
+- **Feedback** — after BEGIN: optional 1–5 clarity rating, short feedback,
+  bug report, and a separate follow-up-contact permission.
+- **Admin** — `#/admin` (code-split, server-authorized): invite testers,
+  view invitation/acceptance status, revoke access, review and export
+  feedback (CSV), view aggregate metrics, manage agreement versions, and
+  delete a tester's beta data.
+
+**Setup** (one-time, by the organizer): create the isolated Supabase
+project → run `supabase/beta-schema.sql` → paste the project URL + anon
+key into `src/beta-config.js` → run the admin bootstrap at the bottom of
+the schema file. Drafts for attorney review live in `docs/`
+(`BETA_AGREEMENT_DRAFT.md`, `PRIVACY_NOTICE_DRAFT.md`), plus
+`TESTER_INVITE.md` and the `PRELAUNCH_CHECKLIST.md` that must be completed
+against the live environment before the first invite is sent. While the
+backend is unconfigured, the app shows a "beta isn't open yet" holding
+screen — the journey is never publicly reachable from this branch.
+
+Verify with `npm run build` and `npm run test:harness` (journey harness
+33 checks + beta-gate harness 31 checks, including storage-tampering and
+revocation scenarios against a fake backend).
+
 ## Run it
 
 ```bash
