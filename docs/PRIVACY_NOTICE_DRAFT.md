@@ -3,9 +3,9 @@
 **DRAFT — FOR ATTORNEY / PRIVACY REVIEW ONLY.**
 
 - **Version:** 1.0
-- **Effective date:** [EFFECTIVE DATE — set at beta launch]
-- **Provider:** [LEGAL ENTITY NAME] ("NE3ULA," "we," "us")
-- **Contact / data requests:** [CONTACT EMAIL]
+- **Effective date:** October 21, 2026
+- **Provider:** Nova Labs ("NE3ULA," "we," "us")
+- **Contact / data requests:** affinitymojo3@gmail.com
 
 AXZIO | ARRIVAL is a self-reflection and personal development tool.
 **It is not medical, psychological, or emergency treatment**, and it is not
@@ -63,10 +63,9 @@ verification, feedback, aggregate metrics).
 ## Your choices
 
 - **Local data:** delete it anytime with "Clear my data" in the app.
-- **Account / beta data:** email [CONTACT EMAIL] to request deletion of
+- **Account / beta data:** email affinitymojo3@gmail.com to request deletion of
   your account-related beta data (invitation, acceptance, feedback, and
-  event records). We will complete verified requests within [RESPONSE
-  PERIOD — e.g., 30 days].
+  event records). We will complete verified requests within 30 days.
 - **Leaving the beta:** stop using the app at any time; request deletion
   as above if you want your server-side records removed.
 
@@ -78,7 +77,8 @@ accepting an updated Beta Testing Agreement.
 
 ---
 
-**Placeholders requiring completion before launch:** legal entity name,
-contact email, effective date, deletion response period. This draft has not
+**Placeholders:** completed 2026-10-21 (entity: Nova Labs; contact:
+affinitymojo3@gmail.com; effective date above; deletion response period:
+30 days). This draft has not
 been reviewed by an attorney or privacy professional and is not legal
 advice.

@@ -3,9 +3,9 @@
 **DRAFT — FOR ATTORNEY REVIEW ONLY. NOT FINAL LEGAL ADVICE.**
 
 - **Version:** 1.0
-- **Effective date:** [EFFECTIVE DATE — set at beta launch]
-- **Provider:** [LEGAL ENTITY NAME] ("NE3ULA," "we," "us")
-- **Contact:** [CONTACT EMAIL]
+- **Effective date:** October 21, 2026
+- **Provider:** Nova Labs ("NE3ULA," "we," "us")
+- **Contact:** affinitymojo3@gmail.com
 - **Product:** AXZIO | ARRIVAL (the "Beta"), part of the NE3ULA ecosystem
 
 By selecting "I Agree & Join Beta," you ("Tester," "you") agree to the
@@ -111,20 +111,21 @@ Either party may end your participation at any time. We may revoke Beta
 access at our discretion, including for violation of this Agreement. Upon
 termination, your access ends and you must stop using Confidential
 Information. The confidentiality obligations in Section A survive
-termination for [SURVIVAL PERIOD — e.g., two (2) years], except where a
+termination for two (2) years, except where a
 longer or shorter period is required by law. Sections D, E, and F survive
 as applicable.
 
 ## H. Governing Law
 
 This Agreement is governed by the laws of the State of California, United
-States, without regard to conflict-of-law rules. [VENUE / DISPUTE
-RESOLUTION — for attorney review.]
+States, without regard to conflict-of-law rules. Disputes arising under this Agreement will be resolved in the state or
+federal courts located in California.
 
 ---
 
-**Placeholders requiring completion before launch:** legal entity name,
-contact email, effective date, confidentiality survival period, venue /
-dispute resolution. This draft has not been reviewed by an attorney and is
+**Placeholders:** completed 2026-10-21 (entity: Nova Labs; contact:
+affinitymojo3@gmail.com; effective date above; survival period: two (2)
+years; venue: California courts). This draft has not been reviewed by an
+attorney and is
 not legal advice; it is not, by itself, a guarantee of a legally binding
 signature mechanism.

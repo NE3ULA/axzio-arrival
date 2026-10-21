@@ -309,12 +309,10 @@ create policy "events_admin_delete" on beta_events
 insert into beta_agreements (version, effective_date, title, body, active)
 values (
   '1.0',
-  -- PLACEHOLDER DATE: set the real effective date by creating the
-  -- launch version in the admin interface before inviting testers.
-  '2026-01-01'::date,
+  '2026-10-21'::date,
   'AXZIO | ARRIVAL — Beta Testing Agreement',
   $AGREEMENT$
-DRAFT — FOR ATTORNEY REVIEW. Version 1.0. Provider: [LEGAL ENTITY NAME] ("NE3ULA"). Contact: [CONTACT EMAIL]. Product: AXZIO | ARRIVAL (the "Beta").
+DRAFT — FOR ATTORNEY REVIEW. Version 1.0. Provider: Nova Labs ("NE3ULA"). Contact: affinitymojo3@gmail.com. Product: AXZIO | ARRIVAL (the "Beta").
 
 You must be 18 years or older to participate in the Beta.
 
@@ -337,10 +335,10 @@ F. BETA DISCLAIMERS
 The Beta is experimental, unfinished software provided "as is." Features may change, fail, or disappear without notice; access may be interrupted or revoked at any time; data loss is possible — do not rely on the Beta to store anything you cannot afford to lose; continuous availability is not guaranteed; participation is entirely voluntary. To the maximum extent permitted by applicable law, NE3ULA disclaims all warranties, express or implied, and will not be liable for indirect, incidental, or consequential damages arising from participation in the Beta. Nothing in this section limits liability that cannot lawfully be limited. AXZIO is a self-reflection and personal development tool. It is not medical, psychological, or emergency treatment, and it is not a substitute for professional care.
 
 G. TERMINATION
-Either party may end your participation at any time. We may revoke Beta access at our discretion, including for violation of this Agreement. Upon termination, your access ends and you must stop using Confidential Information. The confidentiality obligations in Section A survive termination for [SURVIVAL PERIOD], except where a longer or shorter period is required by law. Sections D, E, and F survive as applicable.
+Either party may end your participation at any time. We may revoke Beta access at our discretion, including for violation of this Agreement. Upon termination, your access ends and you must stop using Confidential Information. The confidentiality obligations in Section A survive termination for two (2) years, except where a longer or shorter period is required by law. Sections D, E, and F survive as applicable.
 
 H. GOVERNING LAW
-This Agreement is governed by the laws of the State of California, United States, without regard to conflict-of-law rules. [VENUE / DISPUTE RESOLUTION — for attorney review.]
+This Agreement is governed by the laws of the State of California, United States, without regard to conflict-of-law rules. Disputes arising under this Agreement will be resolved in the state or federal courts located in California.
 
 This draft has not been reviewed by an attorney and is not legal advice. It is not, by itself, a guarantee of a legally binding signature mechanism.
 $AGREEMENT$,
