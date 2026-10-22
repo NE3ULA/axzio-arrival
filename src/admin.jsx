@@ -29,7 +29,7 @@ export default function Admin() {
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDays, setInviteDays] = useState(7);
-  const [inviteLink, setInviteLink] = useState("");
+  const [inviteCreatedFor, setInviteCreatedFor] = useState("");
 
   const [agVersion, setAgVersion] = useState("");
   const [agDate, setAgDate] = useState("");
@@ -83,13 +83,14 @@ export default function Admin() {
     act(async () => {
       const token = generateInviteToken();
       const tokenHash = await hashInviteToken(token);
+      const target = inviteEmail.trim().toLowerCase();
       await api.adminCreateInvitation({
-        email: inviteEmail.trim().toLowerCase(),
+        email: target,
         token_hash: tokenHash,
         expires_at: new Date(Date.now() + Number(inviteDays) * 86400000).toISOString(),
         created_by: me.id,
       });
-      setInviteLink(`${window.location.origin}${window.location.pathname}?invite=${token}`);
+      setInviteCreatedFor(target);
       setInviteEmail("");
     });
 
@@ -184,10 +185,14 @@ export default function Admin() {
             Create invitation
           </button>
         </div>
-        {inviteLink && (
-          <div className="panel" data-testid="adm-invite-link">
-            <p className="hint">Send this link to the tester (shown once — the token is never stored):</p>
-            <code className="invite-link">{inviteLink}</code>
+        {inviteCreatedFor && (
+          <div className="panel" data-testid="adm-invite-created">
+            <p className="hint" style={{ margin: 0 }}>
+              Invitation created for <strong>{inviteCreatedFor}</strong>. Send them the app link and tell them to
+              sign in with this email address — the invitation is attached to their email, so there is no code to
+              send or lose:
+            </p>
+            <code className="invite-link">https://ne3ula.github.io/axzio-arrival/</code>
           </div>
         )}
         <table className="admin-table">

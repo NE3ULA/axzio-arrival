@@ -16,13 +16,14 @@ export function makeFakeBackend(overrides = {}) {
     },
     admin: false,
     redeemResult: { ok: true },
+    claimResult: { ok: true },
     invitations: [],
     accessList: [],
     acceptances: [],
     feedbackList: [],
     eventsList: [],
     agreements: [],
-    calls: { redeem: [], accept: [], feedback: [], events: [], invites: [] },
+    calls: { redeem: [], claim: [], accept: [], feedback: [], events: [], invites: [] },
     ...overrides,
   };
 
@@ -40,6 +41,13 @@ export function makeFakeBackend(overrides = {}) {
         state.access = { user_id: state.session.user.id, email: state.session.user.email, status: "active" };
       }
       return state.redeemResult;
+    },
+    claimInvitation: async () => {
+      state.calls.claim.push("claim");
+      if (state.claimResult.ok && state.session) {
+        state.access = { user_id: state.session.user.id, email: state.session.user.email, status: "active" };
+      }
+      return state.claimResult;
     },
     getMyAccess: async () => state.access,
     getActiveAgreement: async () => state.agreement,

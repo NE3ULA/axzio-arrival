@@ -5,12 +5,12 @@ import { PRIVACY_SHORT, WELLNESS_LINE } from "./legal.js";
 /* AXZIO | ARRIVAL — the beta gate.
  * Nothing of the journey renders until the server has verified, in order:
  *   1. a signed-in, email-verified account,
- *   2. an active (non-revoked) beta access row — created only by redeeming
- *      a valid, unexpired, single-use invitation bound to that email,
+ *   2. an active (non-revoked) beta access row — granted automatically
+ *      when a pending invitation exists for the verified sign-in email
+ *      (claim_invitation), or by redeeming an invitation token from a
+ *      link the organizer sent (fallback path),
  *   3. a server-recorded acceptance of the currently active agreement.
  * localStorage plays no part in any of these decisions. */
-
-export const INVITE_STORE_KEY = "arrival-invite-token";
 
 const REDEEM_ERRORS = {
   invalid_token: "That invitation doesn't look right. Check the link in your invitation, or paste the token exactly as given.",
@@ -61,7 +61,6 @@ export default function Gate({ children }) {
   const [error, setError] = useState("");
   const [session, setSession] = useState(null);
   const [agreement, setAgreement] = useState(null);
-  const [hasInvite, setHasInvite] = useState(false);
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -85,21 +84,19 @@ export default function Gate({ children }) {
         return;
       }
       if (!access) {
-        const token = sessionStorage.getItem(INVITE_STORE_KEY);
-        if (token) {
-          const res = await api.redeemInvitation(token);
-          if (res && res.ok) {
-            sessionStorage.removeItem(INVITE_STORE_KEY);
-            setHasInvite(false);
-            access = await api.getMyAccess();
-          } else {
-            setError(REDEEM_ERRORS[res && res.error] || REDEEM_ERRORS.server_error);
-            setPhase("needsInvite");
-            return;
-          }
+        // Primary path: if an invitation is waiting for this verified
+        // email, the server grants access automatically — no code needed.
+        const res = await api.claimInvitation().catch(() => ({ ok: false, error: "server_error" }));
+        if (res && res.ok) {
+          access = await api.getMyAccess();
         }
         if (!access) {
-          setPhase("needsInvite");
+          if (res && res.error === "expired") {
+            setError("Your invitation has expired. Ask the organizer for a fresh one.");
+          } else if (res && res.error === "server_error") {
+            setError("We couldn't check your invitation just now. Try reloading in a moment.");
+          }
+          setPhase("noInvite");
           return;
         }
         if (access.status === "revoked") {
@@ -126,20 +123,6 @@ export default function Gate({ children }) {
     if (!backendReady()) {
       setPhase("holding");
       return;
-    }
-    // Capture an invitation token from the link, then remove it from the URL.
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get("invite");
-      if (token) {
-        sessionStorage.setItem(INVITE_STORE_KEY, token);
-        params.delete("invite");
-        const qs = params.toString();
-        window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
-      }
-      setHasInvite(Boolean(sessionStorage.getItem(INVITE_STORE_KEY)));
-    } catch {
-      /* sessionStorage unavailable — paste-token fallback still works */
     }
     api.getSession().then(evaluate);
     const unsub = api.onAuthChange((sess) => {
@@ -186,7 +169,6 @@ export default function Gate({ children }) {
     try {
       const res = await api.redeemInvitation(tokenInput.trim());
       if (res && res.ok) {
-        sessionStorage.removeItem(INVITE_STORE_KEY);
         await evaluate(session);
       } else {
         setError(REDEEM_ERRORS[res && res.error] || REDEEM_ERRORS.server_error);
@@ -244,7 +226,6 @@ export default function Gate({ children }) {
           <p className="hint">
             Access is by invitation only. Sign in with the email address your invitation was sent to.
           </p>
-          {hasInvite && <p className="ok-note">Invitation detected on this device — sign in with the invited email to redeem it.</p>}
           <label className="field-label" htmlFor="gate-email">
             Email address
           </label>
@@ -297,38 +278,46 @@ export default function Gate({ children }) {
         </section>
       )}
 
-      {phase === "needsInvite" && (
-        <section className="stage rise" data-testid="gate-invite">
-          <h1 className="q">One more step — your invitation.</h1>
+      {phase === "noInvite" && (
+        <section className="stage rise" data-testid="gate-noinvite">
+          <h1 className="q">This beta is invitation-only.</h1>
           <p className="hint">
-            You're signed in as <strong>{session ? session.user.email : ""}</strong>, but this account doesn't have beta
-            access yet. Paste the invitation token from your invite link to redeem it. The invitation must have been
-            issued to this email address.
+            You're signed in as <strong>{session ? session.user.email : ""}</strong>, but that email address isn't on
+            the invitation list, so there's nothing to open yet. If you were invited under a different email, sign out
+            and sign back in with that one. Otherwise, ask the organizer to invite this address — once they do,
+            signing in is all it takes.
           </p>
-          <label className="field-label" htmlFor="gate-token">
-            Invitation token
-          </label>
-          <input
-            id="gate-token"
-            data-testid="gate-token"
-            className="input"
-            placeholder="Paste token…"
-            value={tokenInput}
-            onChange={(e) => setTokenInput(e.target.value)}
-          />
-          <div className="action-col">
-            <button type="button" className="btn btn-primary" data-testid="gate-redeem" disabled={busy || !tokenInput.trim()} onClick={redeem}>
-              Redeem invitation
-            </button>
-            <button type="button" className="btn btn-ghost" data-testid="gate-signout" onClick={() => api.signOut()}>
-              Sign out
-            </button>
-          </div>
           {error && (
             <p className="error-note" data-testid="gate-error">
               {error}
             </p>
           )}
+          <div className="panel">
+            <p className="hint" style={{ marginTop: 0 }}>
+              Were you sent an invitation link with a token? Paste the token here instead:
+            </p>
+            <label className="field-label" htmlFor="gate-token">
+              Invitation token
+            </label>
+            <input
+              id="gate-token"
+              data-testid="gate-token"
+              className="input"
+              placeholder="Paste token…"
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+            />
+            <div className="action-col">
+              <button type="button" className="btn btn-ghost" data-testid="gate-redeem" disabled={busy || !tokenInput.trim()} onClick={redeem}>
+                Redeem invitation
+              </button>
+            </div>
+          </div>
+          <div className="action-col">
+            <button type="button" className="btn btn-ghost" data-testid="gate-signout" onClick={() => api.signOut()}>
+              Sign out
+            </button>
+          </div>
         </section>
       )}
 

@@ -218,6 +218,55 @@ $$;
 grant execute on function redeem_invitation(text) to authenticated;
 
 -- ---------------------------------------------------------------------
+-- Invitation claim by verified email (V0.2.1 — the primary path)
+-- The magic link proves control of the invited mailbox, so a signed-in
+-- tester with a pending invitation for that email is granted access
+-- automatically. No code is ever handed to the tester.
+-- ---------------------------------------------------------------------
+create or replace function claim_invitation()
+returns jsonb language plpgsql security definer
+set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_email text;
+  v_inv beta_invitations%rowtype;
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', false, 'error', 'not_signed_in');
+  end if;
+
+  select email into v_email from auth.users where id = v_uid;
+
+  select * into v_inv from beta_invitations
+  where lower(email) = lower(v_email) and status = 'pending'
+  order by created_at desc
+  limit 1
+  for update;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'no_invitation');
+  end if;
+
+  if v_inv.expires_at < now() then
+    update beta_invitations set status = 'expired' where id = v_inv.id;
+    return jsonb_build_object('ok', false, 'error', 'expired');
+  end if;
+
+  insert into beta_access (user_id, email, invited_by)
+  values (v_uid, v_email, v_inv.created_by)
+  on conflict (user_id) do nothing;
+
+  update beta_invitations
+  set status = 'redeemed', redeemed_by = v_uid, redeemed_at = now()
+  where id = v_inv.id;
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+grant execute on function claim_invitation() to authenticated;
+
+-- ---------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------
 alter table beta_agreements enable row level security;

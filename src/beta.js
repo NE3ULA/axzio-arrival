@@ -36,6 +36,7 @@ export const api = {
   verifyCode: (email, code) => getBackend().verifyCode(email, code),
   signOut: () => getBackend().signOut(),
   redeemInvitation: (token) => getBackend().redeemInvitation(token),
+  claimInvitation: () => getBackend().claimInvitation(),
   getMyAccess: () => getBackend().getMyAccess(),
   getActiveAgreement: () => getBackend().getActiveAgreement(),
   getMyAcceptance: (agreementId) => getBackend().getMyAcceptance(agreementId),
@@ -119,6 +120,11 @@ function createSupabaseBackend() {
     },
     async redeemInvitation(token) {
       const { data, error } = await sb.rpc("redeem_invitation", { p_token: token });
+      if (error) return { ok: false, error: "server_error" };
+      return data;
+    },
+    async claimInvitation() {
+      const { data, error } = await sb.rpc("claim_invitation");
       if (error) return { ok: false, error: "server_error" };
       return data;
     },

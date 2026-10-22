@@ -29,10 +29,12 @@ The `beta` branch wraps the unchanged V0.1 journey in an invitation-only
 beta: **Protection → Access → Consent → Experience → Feedback.**
 
 - **Access** — a separate, isolated Supabase project (never the production
-  AXZIO project). Testers sign in with a verified email; access exists only
-  after redeeming a single-use, expiring invitation whose email matches
-  the sign-in email. Tokens are stored server-side as SHA-256 hashes only.
-  All enforcement is server-side Row Level Security — a shared URL alone
+  AXZIO project). Testers sign in with a verified email; access is granted
+  automatically when a pending invitation exists for that exact email
+  (single-use, expiring; the claim is bound server-side to the verified
+  sign-in email, so no code ever has to reach the tester). A token-based
+  redemption path remains as a fallback for links already sent. All
+  enforcement is server-side Row Level Security — a shared URL alone
   grants nothing, and browser storage plays no part in access decisions.
 - **Consent** — before the journey, each tester must accept the versioned
   Beta Testing Agreement ("I Agree & Join Beta", unchecked boxes, 18+

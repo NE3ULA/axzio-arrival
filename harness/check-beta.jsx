@@ -57,7 +57,6 @@ const { default: App } = await import("../src/App.jsx");
 const { setBackend } = await import("../src/beta.js");
 const { makeFakeBackend } = await import("./fake-backend.js");
 const { STORAGE_KEY } = await import("../src/store.js");
-const { INVITE_STORE_KEY } = await import("../src/gate.jsx");
 
 let passed = 0;
 let failed = 0;
@@ -131,15 +130,15 @@ localStorage.setItem("beta_access", "active");
 await mount();
 check("A: tampered localStorage still does not unlock", !tid("journey") && !!tid("gate-signin"));
 
-/* ---- B. Invite link token auto-redeems after sign-in → acceptance gate ---- */
+/* ---- B. Signed in with a pending invitation: auto-claim → acceptance gate ---- */
 resetStores();
-sessionStorage.setItem(INVITE_STORE_KEY, "tok-good");
 {
   var fakeB = makeFakeBackend({ access: null, acceptance: null });
   setBackend(fakeB.backend);
 }
 await mount();
-check("B: stored invitation auto-redeemed", fakeB.state.calls.redeem.join() === "tok-good");
+check("B: invitation claimed automatically by verified email", fakeB.state.calls.claim.length === 1);
+check("B: no token was asked for", !tid("gate-noinvite"));
 check("B: acceptance gate shown (not journey)", !!tid("gate-accept") && !tid("journey"));
 check("B: agreement body is the server's text", tid("agreement-body").textContent.includes("Section A. Confidentiality"));
 check("B: version + date displayed", document.body.textContent.includes("Version 1.0"));
@@ -156,25 +155,24 @@ check("B: journey unlocked after acceptance", !!tid("journey"));
 click(tid("state-Stuck"));
 check("B: journey_started event logged", fakeB.state.calls.events.includes("journey_started"));
 
-/* ---- C. Bad token → error; pasted good token → proceeds ---- */
+/* ---- C. Uninvited email → invitation-only screen; token fallback still works ---- */
 resetStores();
 {
   var fakeC = makeFakeBackend({
     access: null,
     acceptance: null,
-    redeemResult: { ok: false, error: "email_mismatch" },
+    claimResult: { ok: false, error: "no_invitation" },
+    redeemResult: { ok: true },
   });
   setBackend(fakeC.backend);
 }
-sessionStorage.setItem(INVITE_STORE_KEY, "tok-wrong-email");
 await mount();
-check("C: needs-invite screen shown", !!tid("gate-invite"));
-check("C: email-mismatch error surfaced", tid("gate-error") && tid("gate-error").textContent.includes("different email address"));
-fakeC.state.redeemResult = { ok: true };
+check("C: invitation-only screen shown", !!tid("gate-noinvite"));
+check("C: explains the email isn't on the list", document.body.textContent.includes("isn't on"));
 type(tid("gate-token"), "tok-pasted");
 click(tid("gate-redeem"));
 await flush();
-check("C: pasted token redeemed", fakeC.state.calls.redeem.includes("tok-pasted"));
+check("C: pasted token redeemed (fallback path)", fakeC.state.calls.redeem.includes("tok-pasted"));
 check("C: proceeds to acceptance", !!tid("gate-accept"));
 
 /* ---- D. Revoked tester is stopped ---- */
@@ -253,7 +251,7 @@ type(tid("adm-email"), "new@example.com");
 click(tid("adm-create"));
 await flush();
 check("F: invitation created with hashed token", fakeF.state.calls.invites.length === 1 && /^[0-9a-f]{64}$/.test(fakeF.state.calls.invites[0].token_hash));
-check("F: one-time invite link displayed", !!tid("adm-invite-link") && tid("adm-invite-link").textContent.includes("?invite="));
+check("F: confirmation names the invited email (no token link to send)", !!tid("adm-invite-created") && tid("adm-invite-created").textContent.includes("new@example.com"));
 click(tid("adm-revoke-second@example.com"));
 await flush();
 check("F: revoke flips tester status", fakeF.state.accessList[0].status === "revoked");

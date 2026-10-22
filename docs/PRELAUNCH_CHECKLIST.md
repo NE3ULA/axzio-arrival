@@ -42,10 +42,12 @@ had attorney review.
 - [ ] **Storage tampering:** in devtools, edit localStorage (arrival
       session, fake "accepted" flags) → still gated. Access decisions come
       only from the server (session + `beta_access` + `beta_acceptances`).
-- [ ] **Invitation abuse:** redeem with a wrong token → rejected; with an
-      expired token → rejected + marked expired; with a token issued to a
-      different email → rejected; reuse a redeemed token on a second
-      account → rejected.
+- [ ] **Invitation abuse:** sign in with an email that has no invitation
+      → invitation-only screen, no access; with an expired invitation →
+      blocked and the invitation is marked expired; an invitation can
+      only ever be claimed by signing in with the exact email it was
+      issued to (claims bind to the verified sign-in email); a second
+      sign-in cannot re-claim a redeemed invitation.
 - [ ] **Revocation:** revoke a tester in admin → their next load shows
       the revoked screen and RLS blocks new feedback/event inserts.
 - [ ] **Consent independence:** acceptance record is visible in the
