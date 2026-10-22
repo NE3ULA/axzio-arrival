@@ -1,13 +1,15 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { newSession, loadSession, saveSession, clearStoredSession } from "./store.js";
+import { newSession, loadSessions, saveSessions, clearStoredSessions } from "./store.js";
 import { exportCardImage } from "./exportCard.js";
 import { api } from "./beta.js";
 import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.1
+/* AXZIO | ARRIVAL — V0.2.2
    A single guided journey: Awareness → Arrival → Choice → Action.
+   Finished journeys become cards in a persistent on-device stack —
+   beginning a new arrival adds a card, it never replaces one.
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -43,6 +45,11 @@ function formatWhen(ts) {
   });
   const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   return `${date} · ${time}`;
+}
+
+function formatDay(ts) {
+  if (!ts) return "";
+  return new Date(ts).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
 
 function Progress({ stage }) {
@@ -93,14 +100,113 @@ function Card({ session }) {
   );
 }
 
+function sessionHasContent(s) {
+  return Boolean(s && (s.state || s.matters || s.choice || s.step));
+}
+
+function sessionTitle(s) {
+  return (s.choice || "").trim() || (s.matters || "").trim() || (s.stateNote || "").trim() || "Untitled arrival";
+}
+
+/* Landing rule: no cards yet → straight into a fresh journey; exactly
+   one card → open on it (a draft resumes mid-journey; a begun/completed
+   card shows itself); more than one → the stack is home. */
+function initJourneyState() {
+  const stored = loadSessions();
+  if (stored.length === 0) {
+    const s = newSession();
+    return { sessions: [s], activeId: s.id, view: "journey" };
+  }
+  if (stored.length === 1) {
+    const s = stored[0];
+    return { sessions: stored, activeId: s.id, view: s.status === "draft" ? "journey" : "card" };
+  }
+  const latest = stored.reduce((a, b) => (b.createdAt > a.createdAt ? b : a), stored[0]);
+  return { sessions: stored, activeId: latest.id, view: "stack" };
+}
+
+/* The card stack — home when more than one session exists. Open cards
+   first, in-progress drafts resumable, completed cards kept as history.
+   Beginning a new arrival adds to the stack; it never replaces. */
+function StackView({ sessions, onOpen, onNew }) {
+  const drafts = sessions
+    .filter((s) => s.status === "draft" && sessionHasContent(s))
+    .sort((a, b) => b.createdAt - a.createdAt);
+  const open = sessions
+    .filter((s) => s.status === "begun")
+    .sort((a, b) => (b.begunAt || 0) - (a.begunAt || 0));
+  const done = sessions
+    .filter((s) => s.status === "completed")
+    .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+
+  const row = (s, meta, sub) => (
+    <button key={s.id} type="button" className="stack-row" data-testid={`stack-card-${s.id}`} onClick={() => onOpen(s)}>
+      <div className="stack-title">{sessionTitle(s)}</div>
+      {sub ? <div className="stack-sub">{sub}</div> : null}
+      <div className="stack-meta">{meta}</div>
+    </button>
+  );
+
+  return (
+    <main className="stage-wrap" data-testid="stack">
+      <section className="stage rise">
+        <h1 className="q">Your cards</h1>
+        <p className="hint">Every arrival you've begun lives here. A new arrival adds a card — it never replaces one.</p>
+
+        {drafts.length > 0 && (
+          <>
+            <h2 className="stack-h">In progress</h2>
+            <div className="stack-list">
+              {drafts.map((s) =>
+                row(s, `Step ${s.stage} of 4 · tap to resume`, (s.matters || "").trim() ? `What matters: ${s.matters.trim()}` : "")
+              )}
+            </div>
+          </>
+        )}
+
+        {open.length > 0 && (
+          <>
+            <h2 className="stack-h">Open</h2>
+            <div className="stack-list">
+              {open.map((s) => row(s, `Begun · ${formatDay(s.begunAt)}`, s.step ? `Next action: ${s.step}` : ""))}
+            </div>
+          </>
+        )}
+
+        {done.length > 0 && (
+          <>
+            <h2 className="stack-h">Completed</h2>
+            <div className="stack-list">
+              {done.map((s) => row(s, `Completed · ${formatDay(s.completedAt)}`, s.step ? `Action: ${s.step}` : ""))}
+            </div>
+          </>
+        )}
+
+        {drafts.length + open.length + done.length === 0 && <p className="hint">No cards yet — your next arrival will live here.</p>}
+
+        <div className="action-col">
+          <button type="button" className="btn btn-primary" data-testid="stack-new" onClick={onNew}>
+            Begin a new arrival
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function Journey() {
-  const [session, setSession] = useState(() => loadSession() || newSession());
-  const [confirmNew, setConfirmNew] = useState(false);
+  const [boot] = useState(initJourneyState);
+  const [sessions, setSessions] = useState(boot.sessions);
+  const [activeId, setActiveId] = useState(boot.activeId);
+  const [view, setView] = useState(boot.view);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [showPrompts, setShowPrompts] = useState(false);
   const [exportNote, setExportNote] = useState("");
   const [me, setMe] = useState(null);
   const startedLoggedFor = useRef("");
+
+  const session = sessions.find((s) => s.id === activeId) || sessions[0] || newSession();
 
   useEffect(() => {
     api.getSession().then((s) => setMe(s ? s.user : null)).catch(() => {});
@@ -110,9 +216,8 @@ function Journey() {
   // Also records the content-free "journey started" beta metric, once
   // per journey, the first time a draft gains any content.
   useEffect(() => {
-    saveSession(session);
-    const hasContent = session.state || session.matters || session.choice || session.step;
-    if (session.status === "draft" && hasContent && startedLoggedFor.current !== session.id) {
+    saveSessions(sessions);
+    if (session.status === "draft" && sessionHasContent(session) && startedLoggedFor.current !== session.id) {
       startedLoggedFor.current = session.id;
       try {
         api.logEvent("journey_started");
@@ -120,9 +225,9 @@ function Journey() {
         /* metrics are best-effort */
       }
     }
-  }, [session]);
+  }, [sessions, session]);
 
-  const update = (patch) => setSession((s) => ({ ...s, ...patch }));
+  const update = (patch) => setSessions((list) => list.map((s) => (s.id === session.id ? { ...s, ...patch } : s)));
 
   const stage = session.stage;
   const inFlow = session.status === "draft";
@@ -160,17 +265,54 @@ function Journey() {
       /* metrics are best-effort */
     }
     update({ status: "begun", begunAt: Date.now() });
+    setView("card");
   };
   const complete = () => update({ status: "completed", completedAt: Date.now() });
 
-  const startNew = () => {
-    if (!confirmNew) {
-      setConfirmNew(true);
+  const openSession = (s) => {
+    setConfirmDelete(false);
+    setExportNote("");
+    setActiveId(s.id);
+    setView(s.status === "draft" ? "journey" : "card");
+  };
+
+  /* Beginning a new arrival only ever ADDS a card. An untouched blank
+     draft is reused rather than duplicated; every other card — open,
+     completed, or mid-journey — stays exactly as it was. */
+  const beginNewArrival = () => {
+    setConfirmDelete(false);
+    setExportNote("");
+    const blank = sessions.find((s) => s.status === "draft" && !sessionHasContent(s));
+    if (blank) {
+      setActiveId(blank.id);
+      setView("journey");
       return;
     }
-    clearStoredSession();
-    setConfirmNew(false);
-    setSession(newSession());
+    const s = newSession();
+    setSessions((list) => [...list, s]);
+    setActiveId(s.id);
+    setView("journey");
+  };
+
+  /* Deleting is a deliberate act on one card — never a side effect of
+     starting something new. */
+  const deleteActive = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    const rest = sessions.filter((s) => s.id !== session.id);
+    setConfirmDelete(false);
+    setExportNote("");
+    if (rest.length === 0) {
+      const s = newSession();
+      setSessions([s]);
+      setActiveId(s.id);
+      setView("journey");
+    } else {
+      setSessions(rest);
+      setView("stack");
+    }
   };
 
   const clearData = () => {
@@ -178,9 +320,14 @@ function Journey() {
       setConfirmClear(true);
       return;
     }
-    clearStoredSession();
+    clearStoredSessions();
     setConfirmClear(false);
-    setSession(newSession());
+    setConfirmDelete(false);
+    setExportNote("");
+    const s = newSession();
+    setSessions([s]);
+    setActiveId(s.id);
+    setView("journey");
   };
 
   const shareCard = async () => {
@@ -208,8 +355,17 @@ function Journey() {
           </div>
         </header>
 
-        {inFlow ? (
+        {view === "stack" ? (
+          <StackView sessions={sessions} onOpen={openSession} onNew={beginNewArrival} />
+        ) : inFlow ? (
           <main className="stage-wrap" key={`${stage}-${session.cstep || 1}`}>
+            {sessions.length > 1 && (
+              <div className="journey-top">
+                <button type="button" className="text-btn" data-testid="view-stack" onClick={() => setView("stack")}>
+                  ← Your cards
+                </button>
+              </div>
+            )}
             <Progress stage={stage} />
 
             {stage === 1 && (
@@ -376,8 +532,16 @@ function Journey() {
                   Save card as image
                 </button>
                 {exportNote ? <p className="hint center">{exportNote}</p> : null}
-                <button type="button" className="btn btn-ghost" data-testid="new-session" onClick={startNew}>
-                  {confirmNew ? "Tap again to confirm — this replaces the card above" : "Start a new session"}
+                <button type="button" className="btn btn-ghost" data-testid="new-arrival" onClick={beginNewArrival}>
+                  Begin a new arrival
+                </button>
+                {sessions.length > 1 && (
+                  <button type="button" className="btn btn-ghost" data-testid="view-stack" onClick={() => setView("stack")}>
+                    Your cards
+                  </button>
+                )}
+                <button type="button" className="text-btn center-btn" data-testid="delete-card" onClick={deleteActive}>
+                  {confirmDelete ? "Tap again to delete this card" : "Delete this card"}
                 </button>
               </div>
               <FeedbackForm sessionId={session.id} />
@@ -395,7 +559,7 @@ function Journey() {
           <button type="button" className="foot-link" data-testid="sign-out" onClick={() => api.signOut()}>
             Sign out
           </button>
-          <span className="foot-build">ARRIVAL V0.2 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.2 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

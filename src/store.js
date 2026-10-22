@@ -1,7 +1,13 @@
 /* AXZIO | ARRIVAL — local session storage.
-   V1 keeps exactly one session (the most recent) in localStorage on the
-   user's own device. Nothing leaves the device; there are no accounts,
-   no sync, and no analytics. */
+   V0.2.2: the device holds a COLLECTION of sessions ("your cards").
+   Every journey adds one; beginning a new arrival never replaces an
+   existing card. All content stays in localStorage on the user's own
+   device — no accounts, no sync, nothing leaves the device.
+
+   Migration: V0.1–V0.2.1 stored a single session object under this same
+   key. The loader wraps a bare object into a one-card collection, and
+   the next save writes the collection form — a card created before the
+   upgrade survives it untouched. */
 
 export const STORAGE_KEY = "axzio-arrival:v1";
 
@@ -27,27 +33,33 @@ export function newSession() {
   };
 }
 
-export function loadSession() {
+function coerceSession(raw) {
+  if (!raw || typeof raw !== "object" || typeof raw.stage !== "number") return null;
+  return { ...newSession(), ...raw };
+}
+
+export function loadSessions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || typeof parsed.stage !== "number") return null;
-    return { ...newSession(), ...parsed };
+    if (Array.isArray(parsed)) return parsed.map(coerceSession).filter(Boolean);
+    const single = coerceSession(parsed);
+    return single ? [single] : [];
   } catch {
-    return null;
+    return [];
   }
 }
 
-export function saveSession(session) {
+export function saveSessions(sessions) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
   } catch {
-    /* storage full / private mode — the in-memory session still works */
+    /* storage full / private mode — the in-memory sessions still work */
   }
 }
 
-export function clearStoredSession() {
+export function clearStoredSessions() {
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {

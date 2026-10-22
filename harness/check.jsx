@@ -59,7 +59,7 @@ const React = await import("react");
 const { createRoot } = await import("react-dom/client");
 const { act } = await import("react-dom/test-utils");
 const { default: App } = await import("../src/App.jsx");
-const { STORAGE_KEY } = await import("../src/store.js");
+const { STORAGE_KEY, loadSessions } = await import("../src/store.js");
 const { setBackend } = await import("../src/beta.js");
 const { makeFakeBackend } = await import("./fake-backend.js");
 
@@ -110,12 +110,42 @@ async function mount() {
   await flush();
   return root;
 }
-const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY));
+const storedAll = () => loadSessions();
+const stored = () => {
+  const all = loadSessions();
+  return all[all.length - 1] || {};
+};
 
 console.log("ARRIVAL acceptance harness");
+
+// Legacy migration: a V0.1–V0.2.1 single-session value becomes a card
+localStorage.clear();
+localStorage.setItem(
+  STORAGE_KEY,
+  JSON.stringify({
+    id: "legacy1",
+    createdAt: Date.now(),
+    stage: 4,
+    state: "Clear",
+    stateNote: "",
+    matters: "Legacy matters",
+    mattersPrompt: "",
+    choice: "Legacy choice",
+    step: "Legacy step",
+    cardAt: Date.now(),
+    status: "begun",
+    begunAt: Date.now(),
+    completedAt: null,
+  })
+);
+let root = await mount();
+check("legacy session migrates and opens on its card", !!tid("identity-card") && document.body.textContent.includes("Legacy choice"));
+check("migration wraps it into a one-card collection", storedAll().length === 1 && storedAll()[0].id === "legacy1");
+act(() => root.unmount());
+
 // Fresh start
 localStorage.clear();
-let root = await mount();
+root = await mount();
 
 // 1–2. Opens to Stage 1, state selection gates Continue
 check("stage 1 question shown", document.body.textContent.includes("Where are you right now?"));
@@ -195,21 +225,53 @@ click(tid("complete"));
 check("status pill shows Completed", document.body.textContent.includes("Completed ·"));
 check("stored status is completed", stored().status === "completed");
 
-// Start a new session (two-tap confirm)
-click(tid("new-session"));
-check("first tap asks to confirm", tid("new-session").textContent.includes("Tap again to confirm"));
-click(tid("new-session"));
-check("new session returns to stage 1", document.body.textContent.includes("Where are you right now?"));
-check("stored session is a fresh empty draft", stored().status === "draft" && stored().state === "" && stored().stage === 1);
+// Begin a NEW arrival from the card — the completed card is KEPT
+click(tid("new-arrival"));
+check("new arrival returns to stage 1", document.body.textContent.includes("Where are you right now?"));
+check("completed card kept in storage", storedAll().length === 2 && storedAll()[0].status === "completed");
 
-// Clear my data (two-tap confirm) erases answers
+// Walk the second journey to its card and BEGIN
 click(tid("state-Clear"));
-type(tid("state-note"), "secret note");
+type(tid("state-note"), "Second focus.");
+click(tid("continue"));
+type(tid("matters"), "Restoring the studio.");
+click(tid("continue"));
+type(tid("choice"), "Finish the vocal chain.");
+click(tid("continue"));
+type(tid("step"), "Print the reference mix.");
+click(tid("continue"));
+click(tid("begin"));
+check("second card begun alongside the first", storedAll().length === 2 && storedAll()[1].status === "begun");
+
+// Reopen with two cards → the stack is home
+act(() => root.unmount());
+root = await mount();
+check("reopen with two cards shows the stack", !!tid("stack"));
+check("stack lists both cards", $$('[data-testid^="stack-card-"]').length === 2);
+check("stack shows the open card's next action", document.body.textContent.includes("Print the reference mix."));
+
+// Open the completed card from the stack
+click(tid(`stack-card-${storedAll()[0].id}`));
+check("completed card opens from the stack", !!tid("identity-card") && document.body.textContent.includes("Completed ·"));
+
+// Delete it (two-tap) — only that card goes
+click(tid("delete-card"));
+check("delete asks to confirm", tid("delete-card").textContent.includes("Tap again to delete"));
+click(tid("delete-card"));
+check("delete removes only that card", storedAll().length === 1 && storedAll()[0].status === "begun");
+check("back at the stack after delete", !!tid("stack"));
+
+// Clear my data (two-tap confirm) erases EVERYTHING — all cards
+check("remaining card still holds its content before clear", storedAll()[0].step === "Print the reference mix.");
 click(tid("clear-data"));
 check("clear asks to confirm", tid("clear-data").textContent.includes("Tap again to erase"));
 click(tid("clear-data"));
-const after = stored();
-check("stored data erased (empty template only)", after.state === "" && after.stateNote === "" && after.status === "draft");
+check("clear returns to a fresh stage 1", document.body.textContent.includes("Where are you right now?"));
+const afterAll = storedAll();
+check(
+  "all cards erased (one empty template only)",
+  afterAll.length === 1 && afterAll[0].state === "" && afterAll[0].stateNote === "" && afterAll[0].status === "draft"
+);
 
 act(() => root.unmount());
 console.log(`\n${passed} passed, ${failed} failed`);
