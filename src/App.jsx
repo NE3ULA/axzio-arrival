@@ -6,10 +6,11 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.2
+/* AXZIO | ARRIVAL — V0.2.3
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device stack —
    beginning a new arrival adds a card, it never replaces one.
+   V0.2.3 adds an organizer password sign-in (testers keep email links).
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -201,6 +202,10 @@ function Journey() {
   const [view, setView] = useState(boot.view);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [showPwSet, setShowPwSet] = useState(false);
+  const [newPw, setNewPw] = useState("");
+  const [newPw2, setNewPw2] = useState("");
+  const [pwNote, setPwNote] = useState("");
   const [showPrompts, setShowPrompts] = useState(false);
   const [exportNote, setExportNote] = useState("");
   const [me, setMe] = useState(null);
@@ -328,6 +333,30 @@ function Journey() {
     setSessions([s]);
     setActiveId(s.id);
     setView("journey");
+  };
+
+  /* One-time bootstrap for the organizer: while signed in (one email
+     link is enough), set a password on the account. From then on, any
+     device can sign in with email + password — no email round-trip,
+     no hourly email cap in the way of internal iteration. */
+  const savePassword = async () => {
+    setPwNote("");
+    if (newPw.length < 8) {
+      setPwNote("Use at least 8 characters.");
+      return;
+    }
+    if (newPw !== newPw2) {
+      setPwNote("The two passwords don't match.");
+      return;
+    }
+    try {
+      await api.setPassword(newPw);
+      setNewPw("");
+      setNewPw2("");
+      setPwNote("Password saved. You can now sign in with your email and this password on any device — no email link needed.");
+    } catch (e) {
+      setPwNote(e.message || "Could not save the password. Please try again.");
+    }
   };
 
   const shareCard = async () => {
@@ -559,7 +588,44 @@ function Journey() {
           <button type="button" className="foot-link" data-testid="sign-out" onClick={() => api.signOut()}>
             Sign out
           </button>
-          <span className="foot-build">ARRIVAL V0.2.2 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <button type="button" className="foot-link" data-testid="set-password" onClick={() => setShowPwSet((v) => !v)}>
+            {showPwSet ? "Hide password form" : "Set a password"}
+          </button>
+          {showPwSet && (
+            <div className="pw-set rise">
+              <p className="hint center" style={{ margin: 0 }}>
+                For the organizer: once set, you can sign in anywhere with your email + password — no email link, no
+                waiting on the email limit. Testers keep using email links.
+              </p>
+              <input
+                data-testid="pw-new"
+                className="input"
+                type="password"
+                autoComplete="new-password"
+                placeholder="New password (8+ characters)"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+              />
+              <input
+                data-testid="pw-confirm"
+                className="input"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Repeat the password"
+                value={newPw2}
+                onChange={(e) => setNewPw2(e.target.value)}
+              />
+              <button type="button" className="btn btn-ghost" data-testid="pw-save" onClick={savePassword}>
+                Save password
+              </button>
+              {pwNote ? (
+                <p className="hint center" data-testid="pw-note" style={{ margin: 0 }}>
+                  {pwNote}
+                </p>
+              ) : null}
+            </div>
+          )}
+          <span className="foot-build">ARRIVAL V0.2.3 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

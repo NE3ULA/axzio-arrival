@@ -15,6 +15,7 @@ export function makeFakeBackend(overrides = {}) {
       active: true,
     },
     admin: false,
+    password: null,
     redeemResult: { ok: true },
     claimResult: { ok: true },
     invitations: [],
@@ -23,7 +24,7 @@ export function makeFakeBackend(overrides = {}) {
     feedbackList: [],
     eventsList: [],
     agreements: [],
-    calls: { redeem: [], claim: [], accept: [], feedback: [], events: [], invites: [] },
+    calls: { redeem: [], claim: [], accept: [], feedback: [], events: [], invites: [], password: [], setPassword: [] },
     ...overrides,
   };
 
@@ -31,6 +32,18 @@ export function makeFakeBackend(overrides = {}) {
     getSession: async () => state.session,
     onAuthChange: () => () => {},
     signInWithEmail: async () => {},
+    signInWithPassword: async (email, pw) => {
+      state.calls.password.push(email);
+      if (state.password && pw === state.password) {
+        state.session = { user: { id: "u-tester", email } };
+        return;
+      }
+      throw new Error("Invalid login credentials");
+    },
+    setPassword: async (pw) => {
+      state.calls.setPassword.push(pw);
+      state.password = pw;
+    },
     verifyCode: async () => {},
     signOut: async () => {
       state.session = null;

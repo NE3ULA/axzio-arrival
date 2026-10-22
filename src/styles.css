@@ -788,3 +788,13 @@ body {
   text-transform: uppercase;
   color: var(--faint);
 }
+
+/* ---- organizer password (V0.2.3) ---- */
+.pw-set {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 4px;
+}

@@ -264,6 +264,46 @@ await mount();
 check("G: non-admin sees Not authorized", document.body.textContent.includes("Not authorized"));
 check("G: admin root NOT rendered", !tid("admin-root"));
 
+/* ---- H. Organizer password sign-in (testers keep the email link) ---- */
+resetStores();
+{
+  var fakeH = makeFakeBackend({ session: null, password: "correct horse" });
+  setBackend(fakeH.backend);
+}
+await mount();
+check("H: email-link sign-in is still the primary path", !!tid("gate-signin") && !!tid("gate-send"));
+click(tid("gate-pw-mode"));
+type(tid("gate-email"), "tester@example.com");
+type(tid("gate-password"), "wrong password");
+click(tid("gate-pw-submit"));
+await flush();
+check("H: wrong password rejected with an error", !!tid("gate-error") && !tid("journey"));
+type(tid("gate-password"), "correct horse");
+click(tid("gate-pw-submit"));
+await flush();
+check("H: correct password reaches the journey (access + agreement still server-checked)", !!tid("journey"));
+check("H: both password attempts reached the backend", fakeH.state.calls.password.length === 2);
+
+/* ---- I. Signed-in organizer sets a password (one-time bootstrap) ---- */
+resetStores();
+{
+  var fakeI = makeFakeBackend();
+  setBackend(fakeI.backend);
+}
+await mount();
+check("I: journey renders for the signed-in organizer", !!tid("journey"));
+click(tid("set-password"));
+type(tid("pw-new"), "brand new pw");
+type(tid("pw-confirm"), "brand new pX");
+click(tid("pw-save"));
+await flush();
+check("I: mismatched passwords are caught before anything is sent", fakeI.state.calls.setPassword.length === 0 && tid("pw-note").textContent.includes("don't match"));
+type(tid("pw-confirm"), "brand new pw");
+click(tid("pw-save"));
+await flush();
+check("I: password saved through the backend", fakeI.state.calls.setPassword.join() === "brand new pw");
+check("I: confirmation explains the email link is no longer needed", tid("pw-note").textContent.includes("no email link needed"));
+
 if (root) act(() => root.unmount());
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

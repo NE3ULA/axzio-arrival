@@ -33,6 +33,8 @@ export const api = {
   getSession: () => getBackend().getSession(),
   onAuthChange: (cb) => getBackend().onAuthChange(cb),
   signInWithEmail: (email) => getBackend().signInWithEmail(email),
+  signInWithPassword: (email, password) => getBackend().signInWithPassword(email, password),
+  setPassword: (password) => getBackend().setPassword(password),
   verifyCode: (email, code) => getBackend().verifyCode(email, code),
   signOut: () => getBackend().signOut(),
   redeemInvitation: (token) => getBackend().redeemInvitation(token),
@@ -109,6 +111,17 @@ function createSupabaseBackend() {
           emailRedirectTo: window.location.origin + window.location.pathname,
         },
       });
+      if (error) throw error;
+    },
+    async signInWithPassword(email, password) {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    },
+    async setPassword(password) {
+      // Sets/replaces the password on the signed-in account — the
+      // organizer's way out of the email-link loop. Requires a live
+      // session (e.g. one magic-link sign-in) exactly once.
+      const { error } = await sb.auth.updateUser({ password });
       if (error) throw error;
     },
     async verifyCode(email, code) {

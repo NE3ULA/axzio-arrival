@@ -63,6 +63,8 @@ export default function Gate({ children }) {
   const [agreement, setAgreement] = useState(null);
 
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [pwMode, setPwMode] = useState(false);
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [tokenInput, setTokenInput] = useState("");
@@ -144,6 +146,20 @@ export default function Gate({ children }) {
       setSent(true);
     } catch (e) {
       setError(e.message || "Could not send the sign-in email. Check the address and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const signInPw = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await api.signInWithPassword(email.trim(), password);
+      const sess = await api.getSession();
+      if (sess) await evaluate(sess);
+    } catch {
+      setError("That email and password didn't match. Passwords are case-sensitive — check the details and try again.");
     } finally {
       setBusy(false);
     }
@@ -273,6 +289,42 @@ export default function Gate({ children }) {
             <p className="error-note" data-testid="gate-error">
               {error}
             </p>
+          )}
+          {!pwMode ? (
+            <button type="button" className="text-btn" data-testid="gate-pw-mode" onClick={() => setPwMode(true)}>
+              Organizer? Sign in with a password
+            </button>
+          ) : (
+            <div className="panel rise">
+              <p className="hint" style={{ marginTop: 0 }}>
+                For the organizer's own account — sign in with the email address above and its password. Beta testers
+                don't need this; the email link above is theirs.
+              </p>
+              <label className="field-label" htmlFor="gate-password">
+                Password
+              </label>
+              <input
+                id="gate-password"
+                data-testid="gate-password"
+                className="input"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <div className="action-col">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  data-testid="gate-pw-submit"
+                  disabled={busy || !email.trim() || !password}
+                  onClick={signInPw}
+                >
+                  Sign in with password
+                </button>
+              </div>
+            </div>
           )}
           <p className="hint" style={{ marginTop: 22 }}>{WELLNESS_LINE}</p>
         </section>
