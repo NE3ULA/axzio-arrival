@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.6
+/* AXZIO | ARRIVAL — V0.2.8
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -19,6 +19,9 @@ const Admin = lazy(() => import("./admin.jsx"));
    V0.2.7 adds the One Thing: one priority card, starred, held apart at
    the top of the deck in gold; the Current tab opens it. A single live
    card stands as the priority on its own.
+   V0.2.8 adds view ↔ edit under Current: a begun card is no longer
+   view-only — Edit re-enters the journey with answers in place, Save
+   changes returns to the card (status and begun time untouched).
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -269,6 +272,7 @@ function Journey() {
   const [sessions, setSessions] = useState(boot.sessions);
   const [activeId, setActiveId] = useState(boot.activeId);
   const [view, setView] = useState(boot.view);
+  const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [showPwSet, setShowPwSet] = useState(false);
@@ -331,9 +335,11 @@ function Journey() {
 
   const goBack = () => {
     if (stage === 1) {
-      // Step 1 has no previous stage — Back steps out to the deck.
-      // The draft is already saved; leaving loses nothing.
-      setView("stack");
+      // Editing a begun card: Back returns to viewing the card.
+      // A draft: Back steps out to the deck. Answers save as you type
+      // either way — leaving loses nothing.
+      if (editing) finishEdit();
+      else setView("stack");
       return;
     }
     if (stage === 2) update({ stage: 1 });
@@ -353,9 +359,25 @@ function Journey() {
   };
   const complete = () => update({ status: "completed", completedAt: Date.now(), priority: false });
 
+  /* View ↔ edit for a begun card (V0.2.8): the card view is for
+     viewing; Edit re-enters the journey with every answer in place.
+     Saving returns to the view — the card stays begun, its begun time
+     and the completion metrics are untouched. */
+  const startEdit = () => {
+    setExportNote("");
+    update({ stage: 1 });
+    setEditing(true);
+    setView("journey");
+  };
+  const finishEdit = () => {
+    setEditing(false);
+    setView("card");
+  };
+
   const openSession = (s) => {
     setConfirmDelete(false);
     setExportNote("");
+    setEditing(false);
     setActiveId(s.id);
     setView(s.status === "draft" ? "journey" : "card");
   };
@@ -366,6 +388,7 @@ function Journey() {
   const beginNewArrival = () => {
     setConfirmDelete(false);
     setExportNote("");
+    setEditing(false);
     const blank = sessions.find((s) => s.status === "draft" && !sessionHasContent(s));
     if (blank) {
       setActiveId(blank.id);
@@ -491,7 +514,7 @@ function Journey() {
             onNew={beginNewArrival}
             onSetPriority={setPriority}
           />
-        ) : inFlow ? (
+        ) : inFlow || editing ? (
           <main className="stage-wrap" key={`${stage}-${session.cstep || 1}`}>
             <Progress stage={stage} />
 
@@ -605,7 +628,9 @@ function Journey() {
               <section className="stage rise">
                 <h1 className="q q-card">Your Identity State Card</h1>
                 <Card session={session} />
-                <p className="hint center">This is your decision, in your words. When you're ready, begin.</p>
+                <p className="hint center">
+                  {editing ? "Editing your card — changes save as you go." : "This is your decision, in your words. When you're ready, begin."}
+                </p>
               </section>
             )}
 
@@ -622,6 +647,10 @@ function Journey() {
                   onClick={goNext}
                 >
                   Continue
+                </button>
+              ) : editing ? (
+                <button type="button" className="btn btn-primary" data-testid="save-edit" onClick={finishEdit}>
+                  Save changes
                 </button>
               ) : (
                 <button type="button" className="btn btn-primary btn-begin" data-testid="begin" onClick={begin}>
@@ -651,6 +680,11 @@ function Journey() {
                 LIVE YOUR LEGEND.
               </p>
               <div className="action-col">
+                {session.status === "begun" && (
+                  <button type="button" className="btn btn-ghost" data-testid="edit-card" onClick={startEdit}>
+                    Edit this card
+                  </button>
+                )}
                 {session.status !== "completed" && session.id !== priorityId && (
                   <button type="button" className="btn btn-ghost" data-testid="set-priority" onClick={() => setPriority(session)}>
                     ★ Make this the One Thing
@@ -724,7 +758,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.7 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.8 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

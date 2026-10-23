@@ -345,6 +345,43 @@ check(
   !!tid("onething") && tid("onething").textContent.includes("Priority draft two.")
 );
 
+// View ↔ edit under Current (V0.2.8): a begun card is no longer view-only.
+// Walk the priority draft through to BEGIN, then edit it from its card view.
+click(tid(`deck-card-${secondDraftId}`));
+click(tid("continue"));
+type(tid("matters"), "Second matters.");
+click(tid("continue"));
+type(tid("choice"), "Second choice.");
+click(tid("continue"));
+type(tid("step"), "Second step.");
+click(tid("continue"));
+click(tid("begin"));
+check("second card begun", stored().status === "begun" && stored().choice === "Second choice.");
+const begunAtBefore = stored().begunAt;
+
+check("the card view offers Edit this card", !!tid("edit-card"));
+click(tid("edit-card"));
+check(
+  "edit opens the journey at stage 1 with answers kept",
+  document.body.textContent.includes("Where are you right now?") && !!tid("state-Stuck") && tid("state-Stuck").className.includes("on")
+);
+click(tid("continue"));
+click(tid("continue"));
+type(tid("choice"), "Second choice, revised.");
+click(tid("continue"));
+click(tid("continue"));
+check("editing reaches the card with Save changes, not BEGIN", !!tid("save-edit") && !tid("begin"));
+click(tid("save-edit"));
+check(
+  "save returns to the card — still begun, choice revised, begun time untouched",
+  !!tid("identity-card") && stored().status === "begun" && stored().choice === "Second choice, revised." && stored().begunAt === begunAtBefore
+);
+check("the viewed card shows the revised choice", tid("identity-card").textContent.includes("Second choice, revised."));
+
+click(tid("edit-card"));
+click(tid("back"));
+check("back from edit stage 1 returns to viewing the card", !!tid("identity-card") && !tid("deck"));
+
 act(() => root.unmount());
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
