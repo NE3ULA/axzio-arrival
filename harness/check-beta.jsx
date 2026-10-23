@@ -273,6 +273,11 @@ resetStores();
 await mount();
 check("H: email-link sign-in is still the primary path", !!tid("gate-signin") && !!tid("gate-send"));
 click(tid("gate-pw-mode"));
+// Autofill trap: password present, email empty → a clear error, not a dead button
+type(tid("gate-password"), "correct horse");
+click(tid("gate-pw-submit"));
+await flush();
+check("H: empty email explains itself instead of stalling", !!tid("gate-error") && tid("gate-error").textContent.includes("email address") && fakeH.state.calls.password.length === 0);
 type(tid("gate-email"), "tester@example.com");
 type(tid("gate-password"), "wrong password");
 click(tid("gate-pw-submit"));

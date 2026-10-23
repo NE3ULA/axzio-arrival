@@ -153,6 +153,12 @@ export default function Gate({ children }) {
 
   const signInPw = async () => {
     setError("");
+    if (!email.trim()) {
+      // Autofill often drops the password in alone — never leave the
+      // organizer staring at a button that silently does nothing.
+      setError("Enter your email address in the field above first — the password signs in that account.");
+      return;
+    }
     setBusy(true);
     try {
       await api.signInWithPassword(email.trim(), password);
@@ -250,7 +256,7 @@ export default function Gate({ children }) {
             data-testid="gate-email"
             className="input"
             type="email"
-            autoComplete="email"
+            autoComplete="username"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -318,7 +324,7 @@ export default function Gate({ children }) {
                   type="button"
                   className="btn btn-ghost"
                   data-testid="gate-pw-submit"
-                  disabled={busy || !email.trim() || !password}
+                  disabled={busy || !password}
                   onClick={signInPw}
                 >
                   Sign in with password

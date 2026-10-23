@@ -6,13 +6,14 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.4
+/* AXZIO | ARRIVAL — V0.2.5
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
    V0.2.3 added an organizer password sign-in (testers keep email links).
-   V0.2.4 adds persistent Current / Deck navigation — the deck is always
-   one tap away and marks the card you're working on.
+   V0.2.4 added persistent Current / Deck navigation.
+   V0.2.5 fixes the password form's autofill dead end (paired fields;
+   a missing email explains itself instead of a silent disabled button).
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -650,7 +651,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.4 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.5 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>
