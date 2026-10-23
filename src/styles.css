@@ -329,11 +329,28 @@ body {
 
 /* ---- navigation buttons ---- */
 .nav-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-top: 34px;
+}
+.nav-row .btn {
+  padding: 15px 20px;
+}
+.nav-slot-l {
+  justify-self: start;
+}
+.nav-slot-c {
+  justify-self: center;
+}
+.nav-slot-r {
+  justify-self: end;
+}
+.btn-view {
+  color: var(--cyan);
+  background: rgba(86, 200, 245, 0.08);
+  border-color: rgba(86, 200, 245, 0.45);
 }
 .btn {
   font: inherit;

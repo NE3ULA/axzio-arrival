@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.10
+/* AXZIO | ARRIVAL — V0.2.11
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -31,6 +31,9 @@ const Admin = lazy(() => import("./admin.jsx"));
    and "View card" is its own option — the action card in its current
    state, reachable mid-edit at any step. (Supersedes V0.2.9's
    Back-as-view.)
+   V0.2.11 aligns the buttons (Jesse): Back / View card / Continue
+   share one grid row and one format — same height, same type, role
+   shown by color alone (neutral / outlined cyan / filled).
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -650,16 +653,30 @@ function Journey() {
 
             <nav className="nav-row">
               {stage > 1 ? (
-                <button type="button" className="btn btn-ghost" data-testid="back" onClick={goBack}>
+                <button type="button" className="btn btn-ghost nav-slot-l" data-testid="back" onClick={goBack}>
                   Back
                 </button>
               ) : (
                 <span />
               )}
               {stage < 4 ? (
+                <button type="button" className="btn btn-view nav-slot-c" data-testid="view-card" onClick={viewCard}>
+                  View card
+                </button>
+              ) : (
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-view nav-slot-c"
+                  data-testid="edit-answers"
+                  onClick={() => update({ stage: 1 })}
+                >
+                  Edit answers
+                </button>
+              )}
+              {stage < 4 ? (
+                <button
+                  type="button"
+                  className="btn btn-primary nav-slot-r"
                   data-testid="continue"
                   disabled={!canContinue}
                   onClick={goNext}
@@ -667,25 +684,15 @@ function Journey() {
                   Continue
                 </button>
               ) : editing ? (
-                <button type="button" className="btn btn-primary" data-testid="save-edit" onClick={finishEdit}>
+                <button type="button" className="btn btn-primary nav-slot-r" data-testid="save-edit" onClick={finishEdit}>
                   Save changes
                 </button>
               ) : (
-                <button type="button" className="btn btn-primary btn-begin" data-testid="begin" onClick={begin}>
+                <button type="button" className="btn btn-primary btn-begin nav-slot-r" data-testid="begin" onClick={begin}>
                   BEGIN
                 </button>
               )}
             </nav>
-            {stage < 4 && (
-              <button type="button" className="text-btn center-btn" data-testid="view-card" onClick={viewCard}>
-                View card
-              </button>
-            )}
-            {stage === 4 && (
-              <button type="button" className="text-btn center-btn" data-testid="edit-answers" onClick={() => update({ stage: 1 })}>
-                Edit my answers
-              </button>
-            )}
           </main>
         ) : (
           <main className="stage-wrap">
@@ -781,7 +788,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.10 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.11 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>
