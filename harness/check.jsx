@@ -155,12 +155,17 @@ click(tid("state-Scattered"));
 check("continue enabled after state chosen", tid("continue").disabled === false);
 type(tid("state-note"), "Too many open loops.");
 
-// Stage-1 Back steps out to the deck; the draft is held, nothing lost
+// Step-1 Back under Current shows the card's action-card view (V0.2.9);
+// the deck is reached by its tab, and the draft waits there untouched
 check("stage 1 offers a back button", !!tid("back"));
 click(tid("back"));
-check("stage-1 back opens the deck holding the draft", !!tid("deck") && !!tid(`deck-card-${stored().id}`));
+check("step-1 back shows the action card view", !!tid("identity-card") && tid("identity-card").textContent.includes("Scattered"));
+click(tid("nav-deck"));
+check("the deck tab holds the draft", !!tid("deck") && !!tid(`deck-card-${stored().id}`));
 click(tid(`deck-card-${stored().id}`));
-check("tapping the draft returns to stage 1 with answers intact", !!tid("state-Scattered") && tid("state-note").value === "Too many open loops.");
+check("the draft reopens on its card view", !!tid("identity-card"));
+click(tid("edit-answers"));
+check("editing returns to stage 1 with answers intact", !!tid("state-Scattered") && tid("state-note").value === "Too many open loops.");
 
 click(tid("continue"));
 

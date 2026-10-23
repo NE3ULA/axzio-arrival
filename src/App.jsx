@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.8
+/* AXZIO | ARRIVAL — V0.2.9
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -22,6 +22,10 @@ const Admin = lazy(() => import("./admin.jsx"));
    V0.2.8 adds view ↔ edit under Current: a begun card is no longer
    view-only — Edit re-enters the journey with answers in place, Save
    changes returns to the card (status and begun time untouched).
+   V0.2.9 corrects Back's meaning under Current (Jesse): Step-1 Back
+   goes to the current card's action-card view, never out to the deck —
+   Back moves between viewing and editing the current card; the deck
+   is reached by its tab. (Supersedes V0.2.6's Back→deck.)
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -335,11 +339,20 @@ function Journey() {
 
   const goBack = () => {
     if (stage === 1) {
-      // Editing a begun card: Back returns to viewing the card.
-      // A draft: Back steps out to the deck. Answers save as you type
-      // either way — leaving loses nothing.
-      if (editing) finishEdit();
-      else setView("stack");
+      // Under Current, Back moves between editing the card and viewing
+      // its action card — it never jumps out to the deck (the Deck tab
+      // does that). Editing a begun card returns to its card view; a
+      // draft shows its action card (Step 4). Answers save as you go,
+      // so moving between the two loses nothing.
+      if (editing) {
+        finishEdit();
+        return;
+      }
+      if (session.status === "draft") {
+        update({ stage: 4, cardAt: session.cardAt || Date.now() });
+        return;
+      }
+      setView("stack");
       return;
     }
     if (stage === 2) update({ stage: 1 });
@@ -758,7 +771,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.8 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.9 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>
