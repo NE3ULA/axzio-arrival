@@ -155,11 +155,12 @@ click(tid("state-Scattered"));
 check("continue enabled after state chosen", tid("continue").disabled === false);
 type(tid("state-note"), "Too many open loops.");
 
-// Step-1 Back under Current shows the card's action-card view (V0.2.9);
-// the deck is reached by its tab, and the draft waits there untouched
-check("stage 1 offers a back button", !!tid("back"));
-click(tid("back"));
-check("step-1 back shows the action card view", !!tid("identity-card") && tid("identity-card").textContent.includes("Scattered"));
+// Two separate options (V0.2.10): Back is editing navigation — absent
+// on Step 1. View card is its own option: the action card as it stands.
+check("no back button on step 1", !tid("back"));
+check("view card is offered while editing", !!tid("view-card"));
+click(tid("view-card"));
+check("view card shows the action card as it stands", !!tid("identity-card") && tid("identity-card").textContent.includes("Scattered"));
 click(tid("nav-deck"));
 check("the deck tab holds the draft", !!tid("deck") && !!tid(`deck-card-${stored().id}`));
 click(tid(`deck-card-${stored().id}`));
@@ -371,6 +372,10 @@ check(
   document.body.textContent.includes("Where are you right now?") && !!tid("state-Stuck") && tid("state-Stuck").className.includes("on")
 );
 click(tid("continue"));
+click(tid("view-card"));
+check("view card mid-edit shows the card as it stands", !!tid("identity-card") && tid("identity-card").textContent.includes("Second matters."));
+click(tid("edit-card"));
+click(tid("continue"));
 click(tid("continue"));
 type(tid("choice"), "Second choice, revised.");
 click(tid("continue"));
@@ -384,8 +389,8 @@ check(
 check("the viewed card shows the revised choice", tid("identity-card").textContent.includes("Second choice, revised."));
 
 click(tid("edit-card"));
-click(tid("back"));
-check("back from edit stage 1 returns to viewing the card", !!tid("identity-card") && !tid("deck"));
+click(tid("view-card"));
+check("view card from edit step 1 returns to viewing the card", !!tid("identity-card") && !tid("deck"));
 
 act(() => root.unmount());
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.9
+/* AXZIO | ARRIVAL — V0.2.10
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -26,6 +26,11 @@ const Admin = lazy(() => import("./admin.jsx"));
    goes to the current card's action-card view, never out to the deck —
    Back moves between viewing and editing the current card; the deck
    is reached by its tab. (Supersedes V0.2.6's Back→deck.)
+   V0.2.10 separates the two options (Jesse): Back is editing
+   navigation only (step back through the stages; absent on Step 1),
+   and "View card" is its own option — the action card in its current
+   state, reachable mid-edit at any step. (Supersedes V0.2.9's
+   Back-as-view.)
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -338,27 +343,23 @@ function Journey() {
   };
 
   const goBack = () => {
-    if (stage === 1) {
-      // Under Current, Back moves between editing the card and viewing
-      // its action card — it never jumps out to the deck (the Deck tab
-      // does that). Editing a begun card returns to its card view; a
-      // draft shows its action card (Step 4). Answers save as you go,
-      // so moving between the two loses nothing.
-      if (editing) {
-        finishEdit();
-        return;
-      }
-      if (session.status === "draft") {
-        update({ stage: 4, cardAt: session.cardAt || Date.now() });
-        return;
-      }
-      setView("stack");
-      return;
-    }
+    // Back is editing navigation only — one step back through the
+    // stages. It never leaves the card: viewing is its own option
+    // (View card) and the deck is reached by its tab. (V0.2.10)
     if (stage === 2) update({ stage: 1 });
     else if (stage === 3 && session.cstep === 2) update({ cstep: 1 });
     else if (stage === 3) update({ stage: 2 });
     else if (stage === 4) update({ stage: 3, cstep: 2 });
+  };
+
+  const viewCard = () => {
+    // The separate view option: show the action card in its current
+    // state, exactly as it stands. From there, Edit returns to editing.
+    if (editing) {
+      finishEdit();
+      return;
+    }
+    update({ stage: 4, cardAt: session.cardAt || Date.now() });
   };
 
   const begin = () => {
@@ -648,9 +649,13 @@ function Journey() {
             )}
 
             <nav className="nav-row">
-              <button type="button" className="btn btn-ghost" data-testid="back" onClick={goBack}>
-                Back
-              </button>
+              {stage > 1 ? (
+                <button type="button" className="btn btn-ghost" data-testid="back" onClick={goBack}>
+                  Back
+                </button>
+              ) : (
+                <span />
+              )}
               {stage < 4 ? (
                 <button
                   type="button"
@@ -671,6 +676,11 @@ function Journey() {
                 </button>
               )}
             </nav>
+            {stage < 4 && (
+              <button type="button" className="text-btn center-btn" data-testid="view-card" onClick={viewCard}>
+                View card
+              </button>
+            )}
             {stage === 4 && (
               <button type="button" className="text-btn center-btn" data-testid="edit-answers" onClick={() => update({ stage: 1 })}>
                 Edit my answers
@@ -771,7 +781,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.9 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.10 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>
