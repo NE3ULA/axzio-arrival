@@ -304,7 +304,7 @@ check(
   afterAll.length === 1 && afterAll[0].state === "" && afterAll[0].stateNote === "" && afterAll[0].status === "draft"
 );
 
-// The One Thing (V0.2.7): one priority card, separated from the rest.
+// Priority card (V0.2.7): one priority card, separated from the rest.
 // (Continues from the cleared state: one blank draft, journey at stage 1.)
 click(tid("state-Clear"));
 type(tid("state-note"), "First arrival note.");
@@ -324,13 +324,13 @@ click(tid("state-Stuck"));
 type(tid("state-note"), "Priority draft two.");
 click(tid("nav-deck"));
 check("two live cards are held", $$('[data-testid^="deck-card-"]').length === 2);
-check("with two live cards and no choice, the One Thing slot asks", !!tid("onething-empty") && document.body.textContent.includes("No priority set"));
+check("with two live cards and no choice, the priority slot asks", !!tid("priority-empty") && document.body.textContent.includes("No priority set"));
 const secondDraftId = storedAll().find((s) => s.status === "draft" && s.stateNote === "Priority draft two.").id;
 click(tid(`deck-star-${secondDraftId}`));
 check("star flags exactly one priority card", storedAll().filter((s) => s.priority).length === 1 && storedAll().find((s) => s.priority).id === secondDraftId);
 check(
-  "priority card sits in its own One Thing section",
-  !!tid("onething") && tid("onething").contains(tid(`deck-card-${secondDraftId}`)) && tid(`deck-card-${secondDraftId}`).textContent.includes("The One Thing")
+  "priority card sits in its own priority section",
+  !!tid("priority-slot") && tid("priority-slot").contains(tid(`deck-card-${secondDraftId}`)) && tid(`deck-card-${secondDraftId}`).textContent.includes("Priority card")
 );
 check("priority card is not duplicated elsewhere in the deck", $$('[data-testid^="deck-card-"]').length === 2);
 
@@ -339,17 +339,17 @@ check("current tab opens the priority card", !!tid("state-note") && tid("state-n
 
 click(tid("nav-deck"));
 click(tid(`deck-card-${firstBegunId}`));
-check("the other card's view offers the One Thing action", !!tid("set-priority"));
+check("the other card's view offers the priority action", !!tid("set-priority"));
 click(tid("set-priority"));
 check("priority moves — still exactly one", storedAll().filter((s) => s.priority).length === 1 && storedAll().find((s) => s.priority).id === firstBegunId);
-check("the card view wears the One Thing badge", !!tid("priority-badge") && tid("priority-badge").textContent.includes("The One Thing"));
+check("the card view wears the priority badge", !!tid("priority-badge") && tid("priority-badge").textContent.includes("Priority card"));
 
 click(tid("complete"));
 check("completing the priority card clears its flag", storedAll().every((s) => !s.priority));
 click(tid("nav-deck"));
 check(
-  "the last live card stands as the One Thing on its own",
-  !!tid("onething") && tid("onething").textContent.includes("Priority draft two.")
+  "the last live card stands as the priority card on its own",
+  !!tid("priority-slot") && tid("priority-slot").textContent.includes("Priority draft two.")
 );
 
 // View ↔ edit under Current (V0.2.8): a begun card is no longer view-only.

@@ -866,14 +866,14 @@ body {
     0 0 24px rgba(86, 200, 245, 0.14);
 }
 
-/* ---- the One Thing (V0.2.7): gold sets the priority card apart ---- */
+/* ---- the priority card (V0.2.7): gold sets it apart ---- */
 .stack-row.priority {
   border-color: rgba(212, 175, 95, 0.9);
   box-shadow:
     0 0 0 1px rgba(212, 175, 95, 0.4),
     0 0 24px rgba(212, 175, 95, 0.14);
 }
-.stack-h.onething {
+.stack-h.priority-h {
   color: #d4af5f;
 }
 .priority-pill {

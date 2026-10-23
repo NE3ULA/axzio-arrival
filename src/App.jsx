@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.12
+/* AXZIO | ARRIVAL — V0.2.13
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -37,6 +37,8 @@ const Admin = lazy(() => import("./admin.jsx"));
    V0.2.12 removes Back on the Step-4 card (Jesse): there it conflicts
    with Edit answers — two doors back into editing. On the card, Edit
    answers is the one way in; Back belongs to the editing steps.
+   V0.2.13 drops the "One Thing" name (Jesse): the feature is simply
+   the priority card — heading, badge, button, and deck copy renamed.
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -135,7 +137,7 @@ function sessionTitle(s) {
   return (s.choice || "").trim() || (s.matters || "").trim() || (s.stateNote || "").trim() || "Untitled arrival";
 }
 
-/* The One Thing: exactly one live card holds priority. The starred
+/* The priority card: exactly one live card holds priority. The starred
    card keeps it across visits; with a single live card, that card
    stands as the priority on its own — no ceremony for the simple
    case. Completed cards are history and never hold priority. */
@@ -161,8 +163,8 @@ function initJourneyState() {
   return { sessions: stored, activeId: latest.id, view: "stack" };
 }
 
-/* The deck — home base for everything you hold. The One Thing — the
-   one priority card — is held apart at the top; the rest follow as
+/* The deck — home base for everything you hold. The priority card
+   is held apart at the top; the rest follow as
    in-progress drafts, open cards, and completed history. The card
    you're working on is marked Current; tapping any card opens it.
    Beginning a new arrival adds to the deck; it never replaces. */
@@ -204,7 +206,7 @@ function DeckView({ sessions, activeId, priorityId, onOpen, onNew, onSetPriority
         <div className="stack-title">{sessionTitle(s)}</div>
         {subFor(s) ? <div className="stack-sub">{subFor(s)}</div> : null}
         <div className="stack-meta">
-          {s.id === priorityId ? "★ The One Thing · " : ""}
+          {s.id === priorityId ? "★ Priority card · " : ""}
           {s.id === activeId ? "● Current · " : ""}
           {metaFor(s)}
         </div>
@@ -214,8 +216,8 @@ function DeckView({ sessions, activeId, priorityId, onOpen, onNew, onSetPriority
           type="button"
           className="star-btn"
           data-testid={`deck-star-${s.id}`}
-          aria-label="Make this card the One Thing"
-          title="Make this the One Thing"
+          aria-label="Make this the priority card"
+          title="Make this the priority card"
           onClick={() => onSetPriority(s)}
         >
           ☆
@@ -229,21 +231,21 @@ function DeckView({ sessions, activeId, priorityId, onOpen, onNew, onSetPriority
       <section className="stage rise">
         <h1 className="q">Your deck</h1>
         <p className="hint">
-          Every card you hold. One of them is the One Thing — your priority, held apart at the top. Tap ☆ on any live
-          card to make it the One Thing; tap a card to open it.
+          Every card you hold. One of them is your priority card, held apart at the top. Tap ☆ on any live card to
+          make it the priority; tap a card to open it.
         </p>
 
         {priority ? (
           <>
-            <h2 className="stack-h onething">★ The One Thing</h2>
-            <div className="stack-list" data-testid="onething">
+            <h2 className="stack-h priority-h">★ Priority card</h2>
+            <div className="stack-list" data-testid="priority-slot">
               {row(priority)}
             </div>
           </>
         ) : liveCount > 1 ? (
           <>
-            <h2 className="stack-h onething">★ The One Thing</h2>
-            <p className="hint" data-testid="onething-empty">
+            <h2 className="stack-h priority-h">★ Priority card</h2>
+            <p className="hint" data-testid="priority-empty">
               No priority set — tap ☆ on the one card that matters most, and it will be held here, apart from the rest.
             </p>
           </>
@@ -705,7 +707,7 @@ function Journey() {
               </div>
               {session.id === priorityId ? (
                 <div className="priority-pill" data-testid="priority-badge">
-                  ★ The One Thing — your priority card
+                  ★ Priority card
                 </div>
               ) : null}
               <Card session={session} />
@@ -720,7 +722,7 @@ function Journey() {
                 )}
                 {session.status !== "completed" && session.id !== priorityId && (
                   <button type="button" className="btn btn-ghost" data-testid="set-priority" onClick={() => setPriority(session)}>
-                    ★ Make this the One Thing
+                    ★ Make this the priority card
                   </button>
                 )}
                 {session.status === "begun" && (
@@ -791,7 +793,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.12 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.13 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

@@ -30,7 +30,7 @@ export function newSession() {
     status: "draft", // draft | begun | completed
     begunAt: null,
     completedAt: null,
-    // The One Thing: exactly one live card may hold priority (V0.2.7)
+    // Priority: exactly one live card may be the priority card (V0.2.7)
     priority: false,
   };
 }
