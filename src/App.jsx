@@ -6,11 +6,13 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.3
+/* AXZIO | ARRIVAL — V0.2.4
    A single guided journey: Awareness → Arrival → Choice → Action.
-   Finished journeys become cards in a persistent on-device stack —
+   Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
-   V0.2.3 adds an organizer password sign-in (testers keep email links).
+   V0.2.3 added an organizer password sign-in (testers keep email links).
+   V0.2.4 adds persistent Current / Deck navigation — the deck is always
+   one tap away and marks the card you're working on.
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -126,10 +128,12 @@ function initJourneyState() {
   return { sessions: stored, activeId: latest.id, view: "stack" };
 }
 
-/* The card stack — home when more than one session exists. Open cards
-   first, in-progress drafts resumable, completed cards kept as history.
-   Beginning a new arrival adds to the stack; it never replaces. */
-function StackView({ sessions, onOpen, onNew }) {
+/* The deck — home base for everything you hold. Open cards first,
+   in-progress drafts resumable, completed cards kept as history. The
+   card you're working on is marked Current; tapping any card opens it
+   and makes it current. Beginning a new arrival adds to the deck; it
+   never replaces. */
+function DeckView({ sessions, activeId, onOpen, onNew }) {
   const drafts = sessions
     .filter((s) => s.status === "draft" && sessionHasContent(s))
     .sort((a, b) => b.createdAt - a.createdAt);
@@ -141,18 +145,31 @@ function StackView({ sessions, onOpen, onNew }) {
     .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 
   const row = (s, meta, sub) => (
-    <button key={s.id} type="button" className="stack-row" data-testid={`stack-card-${s.id}`} onClick={() => onOpen(s)}>
+    <button
+      key={s.id}
+      type="button"
+      className={`stack-row${s.id === activeId ? " current" : ""}`}
+      data-testid={`deck-card-${s.id}`}
+      aria-current={s.id === activeId || undefined}
+      onClick={() => onOpen(s)}
+    >
       <div className="stack-title">{sessionTitle(s)}</div>
       {sub ? <div className="stack-sub">{sub}</div> : null}
-      <div className="stack-meta">{meta}</div>
+      <div className="stack-meta">
+        {s.id === activeId ? "● Current · " : ""}
+        {meta}
+      </div>
     </button>
   );
 
   return (
-    <main className="stage-wrap" data-testid="stack">
+    <main className="stage-wrap" data-testid="deck">
       <section className="stage rise">
-        <h1 className="q">Your cards</h1>
-        <p className="hint">Every arrival you've begun lives here. A new arrival adds a card — it never replaces one.</p>
+        <h1 className="q">Your deck</h1>
+        <p className="hint">
+          Every card you hold — open, in progress, and completed. Tap a card to open it; the one you're working on is
+          marked Current.
+        </p>
 
         {drafts.length > 0 && (
           <>
@@ -186,7 +203,7 @@ function StackView({ sessions, onOpen, onNew }) {
         {drafts.length + open.length + done.length === 0 && <p className="hint">No cards yet — your next arrival will live here.</p>}
 
         <div className="action-col">
-          <button type="button" className="btn btn-primary" data-testid="stack-new" onClick={onNew}>
+          <button type="button" className="btn btn-primary" data-testid="deck-new" onClick={onNew}>
             Begin a new arrival
           </button>
         </div>
@@ -212,6 +229,7 @@ function Journey() {
   const startedLoggedFor = useRef("");
 
   const session = sessions.find((s) => s.id === activeId) || sessions[0] || newSession();
+  const deckCount = sessions.filter((s) => s.status !== "draft" || sessionHasContent(s)).length;
 
   useEffect(() => {
     api.getSession().then((s) => setMe(s ? s.user : null)).catch(() => {});
@@ -384,17 +402,29 @@ function Journey() {
           </div>
         </header>
 
+        <nav className="topnav" aria-label="Navigation">
+          <button
+            type="button"
+            data-testid="nav-current"
+            className={`topnav-btn${view !== "stack" ? " on" : ""}`}
+            onClick={() => openSession(session)}
+          >
+            Current
+          </button>
+          <button
+            type="button"
+            data-testid="nav-deck"
+            className={`topnav-btn${view === "stack" ? " on" : ""}`}
+            onClick={() => setView("stack")}
+          >
+            Deck · {deckCount}
+          </button>
+        </nav>
+
         {view === "stack" ? (
-          <StackView sessions={sessions} onOpen={openSession} onNew={beginNewArrival} />
+          <DeckView sessions={sessions} activeId={session.id} onOpen={openSession} onNew={beginNewArrival} />
         ) : inFlow ? (
           <main className="stage-wrap" key={`${stage}-${session.cstep || 1}`}>
-            {sessions.length > 1 && (
-              <div className="journey-top">
-                <button type="button" className="text-btn" data-testid="view-stack" onClick={() => setView("stack")}>
-                  ← Your cards
-                </button>
-              </div>
-            )}
             <Progress stage={stage} />
 
             {stage === 1 && (
@@ -564,11 +594,6 @@ function Journey() {
                 <button type="button" className="btn btn-ghost" data-testid="new-arrival" onClick={beginNewArrival}>
                   Begin a new arrival
                 </button>
-                {sessions.length > 1 && (
-                  <button type="button" className="btn btn-ghost" data-testid="view-stack" onClick={() => setView("stack")}>
-                    Your cards
-                  </button>
-                )}
                 <button type="button" className="text-btn center-btn" data-testid="delete-card" onClick={deleteActive}>
                   {confirmDelete ? "Tap again to delete this card" : "Delete this card"}
                 </button>
@@ -625,7 +650,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.3 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.4 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

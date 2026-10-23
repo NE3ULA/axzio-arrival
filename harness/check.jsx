@@ -213,6 +213,13 @@ act(() => root.unmount());
 root = await mount();
 check("reopen on begun session shows card home", !!tid("complete") && !!tid("identity-card"));
 
+// Persistent navigation: present even with a single card
+check("deck tabs are always available", !!tid("nav-deck") && !!tid("nav-current"));
+click(tid("nav-deck"));
+check("deck shows the one card, marked current", !!tid("deck") && tid(`deck-card-${stored().id}`).textContent.includes("Current"));
+click(tid("nav-current"));
+check("current tab returns to the card", !!tid("identity-card") && !!tid("complete"));
+
 // Export wiring (canvas stubbed) → saved note
 await act(async () => {
   tid("share").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
@@ -233,6 +240,15 @@ check("completed card kept in storage", storedAll().length === 2 && storedAll()[
 // Walk the second journey to its card and BEGIN
 click(tid("state-Clear"));
 type(tid("state-note"), "Second focus.");
+
+// Mid-journey, the deck is one tap away — and shows where you are
+click(tid("nav-deck"));
+check("deck opens mid-journey", !!tid("deck"));
+const draftRow = tid(`deck-card-${stored().id}`);
+check("the in-progress journey is marked Current in the deck", !!draftRow && draftRow.textContent.includes("Current"));
+click(tid("nav-current"));
+check("current tab resumes the journey where it left off", !!tid("state-note") && tid("state-note").value === "Second focus.");
+
 click(tid("continue"));
 type(tid("matters"), "Restoring the studio.");
 click(tid("continue"));
@@ -246,20 +262,20 @@ check("second card begun alongside the first", storedAll().length === 2 && store
 // Reopen with two cards → the stack is home
 act(() => root.unmount());
 root = await mount();
-check("reopen with two cards shows the stack", !!tid("stack"));
-check("stack lists both cards", $$('[data-testid^="stack-card-"]').length === 2);
-check("stack shows the open card's next action", document.body.textContent.includes("Print the reference mix."));
+check("reopen with two cards shows the deck", !!tid("deck"));
+check("deck lists both cards", $$('[data-testid^="deck-card-"]').length === 2);
+check("deck shows the open card's next action", document.body.textContent.includes("Print the reference mix."));
 
-// Open the completed card from the stack
-click(tid(`stack-card-${storedAll()[0].id}`));
-check("completed card opens from the stack", !!tid("identity-card") && document.body.textContent.includes("Completed ·"));
+// Open the completed card from the deck
+click(tid(`deck-card-${storedAll()[0].id}`));
+check("completed card opens from the deck", !!tid("identity-card") && document.body.textContent.includes("Completed ·"));
 
 // Delete it (two-tap) — only that card goes
 click(tid("delete-card"));
 check("delete asks to confirm", tid("delete-card").textContent.includes("Tap again to delete"));
 click(tid("delete-card"));
 check("delete removes only that card", storedAll().length === 1 && storedAll()[0].status === "begun");
-check("back at the stack after delete", !!tid("stack"));
+check("back at the deck after delete", !!tid("deck"));
 
 // Clear my data (two-tap confirm) erases EVERYTHING — all cards
 check("remaining card still holds its content before clear", storedAll()[0].step === "Print the reference mix.");

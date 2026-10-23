@@ -735,11 +735,6 @@ body {
 }
 
 /* ---- card stack (V0.2.2) ---- */
-.journey-top {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 4px;
-}
 .stack-h {
   font-size: 12.5px;
   font-weight: 700;
@@ -797,4 +792,34 @@ body {
   width: 100%;
   max-width: 360px;
   margin-top: 4px;
+}
+
+/* ---- persistent navigation (V0.2.4) ---- */
+.topnav {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 16px 0 4px;
+}
+.topnav-btn {
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(86, 200, 245, 0.35);
+  background: rgba(10, 20, 40, 0.5);
+  color: var(--mist);
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.topnav-btn.on {
+  color: #08182b;
+  background: linear-gradient(90deg, #56c8f5, #3f8ef7);
+  border-color: transparent;
+}
+.stack-row.current {
+  border-color: rgba(86, 200, 245, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(86, 200, 245, 0.4),
+    0 0 24px rgba(86, 200, 245, 0.14);
 }
