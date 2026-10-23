@@ -309,6 +309,25 @@ await flush();
 check("I: password saved through the backend", fakeI.state.calls.setPassword.join() === "brand new pw");
 check("I: confirmation explains the email link is no longer needed", tid("pw-note").textContent.includes("no email link needed"));
 
+/* ---- J. The gate remembers the email on this device (V0.3.1) ---- */
+// No resetStores here: the remembered email must survive the remount,
+// the way it survives closing and reopening the home-screen app.
+{
+  var fakeJ = makeFakeBackend({ session: null, password: "correct horse" });
+  setBackend(fakeJ.backend);
+}
+await mount();
+check("J: a fresh gate starts with an empty email", !!tid("gate-email") && tid("gate-email").value === "");
+click(tid("gate-pw-mode"));
+type(tid("gate-email"), "organizer@example.com");
+type(tid("gate-password"), "correct horse");
+click(tid("gate-pw-submit"));
+await flush();
+check("J: password sign-in works", !!tid("journey"));
+setBackend(makeFakeBackend({ session: null }).backend);
+await mount();
+check("J: the gate pre-fills the remembered email", !!tid("gate-signin") && tid("gate-email").value === "organizer@example.com");
+
 if (root) act(() => root.unmount());
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

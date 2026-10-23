@@ -55,6 +55,25 @@ function GateShell({ children }) {
   );
 }
 
+/* The gate remembers the last email used on THIS device/app, so the
+   field is never empty when a password manager drops the password in
+   alone (the home-screen app's autofill habit). V0.3.1. */
+const LAST_EMAIL_KEY = "axzio-arrival:last-email";
+function rememberedEmail() {
+  try {
+    return localStorage.getItem(LAST_EMAIL_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+function rememberEmail(value) {
+  try {
+    localStorage.setItem(LAST_EMAIL_KEY, value);
+  } catch {
+    /* private mode — the prefill simply won't persist */
+  }
+}
+
 export default function Gate({ children }) {
   const [phase, setPhase] = useState("loading");
   const [note, setNote] = useState("");
@@ -62,7 +81,7 @@ export default function Gate({ children }) {
   const [session, setSession] = useState(null);
   const [agreement, setAgreement] = useState(null);
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(rememberedEmail);
   const [password, setPassword] = useState("");
   const [pwMode, setPwMode] = useState(false);
   const [code, setCode] = useState("");
@@ -143,6 +162,7 @@ export default function Gate({ children }) {
     setBusy(true);
     try {
       await api.signInWithEmail(email.trim());
+      rememberEmail(email.trim());
       setSent(true);
     } catch (e) {
       setError(e.message || "Could not send the sign-in email. Check the address and try again.");
@@ -162,6 +182,7 @@ export default function Gate({ children }) {
     setBusy(true);
     try {
       await api.signInWithPassword(email.trim(), password);
+      rememberEmail(email.trim());
       const sess = await api.getSession();
       if (sess) await evaluate(sess);
     } catch {
@@ -176,6 +197,7 @@ export default function Gate({ children }) {
     setBusy(true);
     try {
       await api.verifyCode(email.trim(), code.trim());
+      rememberEmail(email.trim());
       const sess = await api.getSession();
       if (sess) await evaluate(sess);
     } catch {
