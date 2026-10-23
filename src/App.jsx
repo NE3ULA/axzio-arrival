@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.5
+/* AXZIO | ARRIVAL — V0.2.6
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -14,6 +14,8 @@ const Admin = lazy(() => import("./admin.jsx"));
    V0.2.4 added persistent Current / Deck navigation.
    V0.2.5 fixes the password form's autofill dead end (paired fields;
    a missing email explains itself instead of a silent disabled button).
+   V0.2.6 gives Step 1 a Back button (steps out to the deck — the draft
+   is already saved, so leaving loses nothing).
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -276,6 +278,12 @@ function Journey() {
   };
 
   const goBack = () => {
+    if (stage === 1) {
+      // Step 1 has no previous stage — Back steps out to the deck.
+      // The draft is already saved; leaving loses nothing.
+      setView("stack");
+      return;
+    }
     if (stage === 2) update({ stage: 1 });
     else if (stage === 3 && session.cstep === 2) update({ cstep: 1 });
     else if (stage === 3) update({ stage: 2 });
@@ -543,13 +551,9 @@ function Journey() {
             )}
 
             <nav className="nav-row">
-              {stage > 1 || (stage === 3 && session.cstep === 2) ? (
-                <button type="button" className="btn btn-ghost" data-testid="back" onClick={goBack}>
-                  Back
-                </button>
-              ) : (
-                <span />
-              )}
+              <button type="button" className="btn btn-ghost" data-testid="back" onClick={goBack}>
+                Back
+              </button>
               {stage < 4 ? (
                 <button
                   type="button"
@@ -651,7 +655,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.5 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.6 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

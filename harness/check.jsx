@@ -154,6 +154,14 @@ check("continue disabled before state chosen", tid("continue").disabled === true
 click(tid("state-Scattered"));
 check("continue enabled after state chosen", tid("continue").disabled === false);
 type(tid("state-note"), "Too many open loops.");
+
+// Stage-1 Back steps out to the deck; the draft is held, nothing lost
+check("stage 1 offers a back button", !!tid("back"));
+click(tid("back"));
+check("stage-1 back opens the deck holding the draft", !!tid("deck") && !!tid(`deck-card-${stored().id}`));
+click(tid(`deck-card-${stored().id}`));
+check("tapping the draft returns to stage 1 with answers intact", !!tid("state-Scattered") && tid("state-note").value === "Too many open loops.");
+
 click(tid("continue"));
 
 // 3. Stage 2 — matters, with gentle prompts
