@@ -195,7 +195,7 @@ export default function Gate({ children }) {
       const sess = await api.getSession();
       if (sess) await evaluate(sess);
     } catch {
-      setError("That username and password didn't match. Passwords are case-sensitive — check the details and try again.");
+      setError('That username and password didn\'t match. If a password was never set for this account — or the one your phone saved is stale — sign in with the email link once, then use “Set a password” at the bottom of the signed-in screen. After that, this form works everywhere.');
     } finally {
       setBusy(false);
     }

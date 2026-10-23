@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.3.2
+/* AXZIO | ARRIVAL — V0.3.3
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -52,6 +52,10 @@ const Admin = lazy(() => import("./admin.jsx"));
    email field (Jesse). A short username ("jesse") resolves on-device
    to the organizer's account email (ADMIN_USERNAMES, beta-config);
    a full email works in the same field. Testers keep the email link.
+   V0.3.3: a failed organizer sign-in now explains itself in place —
+   accounts born from an email link have no password until one is set
+   from a signed-in screen, and the server gives the same refusal
+   either way; the error names the remedy instead of just refusing.
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -863,7 +867,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.3.2 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.3.3 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

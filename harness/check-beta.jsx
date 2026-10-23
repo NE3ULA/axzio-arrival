@@ -283,6 +283,7 @@ type(tid("gate-password"), "wrong password");
 click(tid("gate-pw-submit"));
 await flush();
 check("H: wrong password rejected with an error", !!tid("gate-error") && !tid("journey"));
+check("H: the error names the fix (set a password from a signed-in screen)", tid("gate-error").textContent.includes("Set a password"));
 type(tid("gate-password"), "correct horse");
 click(tid("gate-pw-submit"));
 await flush();
