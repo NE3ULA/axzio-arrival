@@ -277,8 +277,8 @@ click(tid("gate-pw-mode"));
 type(tid("gate-password"), "correct horse");
 click(tid("gate-pw-submit"));
 await flush();
-check("H: empty email explains itself instead of stalling", !!tid("gate-error") && tid("gate-error").textContent.includes("email address") && fakeH.state.calls.password.length === 0);
-type(tid("gate-email"), "tester@example.com");
+check("H: empty username explains itself instead of stalling", !!tid("gate-error") && tid("gate-error").textContent.includes("username") && fakeH.state.calls.password.length === 0);
+type(tid("gate-username"), "tester@example.com");
 type(tid("gate-password"), "wrong password");
 click(tid("gate-pw-submit"));
 await flush();
@@ -319,14 +319,31 @@ check("I: confirmation explains the email link is no longer needed", tid("pw-not
 await mount();
 check("J: a fresh gate starts with an empty email", !!tid("gate-email") && tid("gate-email").value === "");
 click(tid("gate-pw-mode"));
-type(tid("gate-email"), "organizer@example.com");
+type(tid("gate-username"), "organizer@example.com");
 type(tid("gate-password"), "correct horse");
 click(tid("gate-pw-submit"));
 await flush();
-check("J: password sign-in works", !!tid("journey"));
+check("J: organizer sign-in works", !!tid("journey"));
 setBackend(makeFakeBackend({ session: null }).backend);
 await mount();
-check("J: the gate pre-fills the remembered email", !!tid("gate-signin") && tid("gate-email").value === "organizer@example.com");
+check("J: the gate pre-fills the remembered identifier", !!tid("gate-signin") && tid("gate-username") === null && tid("gate-email").value === "organizer@example.com");
+click(tid("gate-pw-mode"));
+check("J: the username field is pre-filled too", tid("gate-username").value === "organizer@example.com");
+
+/* ---- K. The organizer's short username resolves to his account ---- */
+// (No resetStores: storage continuity is the point of this section.)
+{
+  var fakeK = makeFakeBackend({ session: null, password: "correct horse" });
+  setBackend(fakeK.backend);
+}
+await mount();
+click(tid("gate-pw-mode"));
+type(tid("gate-username"), "jesse");
+type(tid("gate-password"), "correct horse");
+click(tid("gate-pw-submit"));
+await flush();
+check("K: username 'jesse' signs in", !!tid("journey"));
+check("K: it resolved to the organizer's account email", fakeK.state.calls.password.join() === "affinitymojo3@gmail.com");
 
 if (root) act(() => root.unmount());
 console.log(`\n${passed} passed, ${failed} failed`);

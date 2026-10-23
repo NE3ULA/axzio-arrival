@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, backendReady } from "./beta.js";
+import { ADMIN_USERNAMES } from "./beta-config.js";
 import { PRIVACY_SHORT, WELLNESS_LINE } from "./legal.js";
 
 /* AXZIO | ARRIVAL — the beta gate.
@@ -82,6 +83,10 @@ export default function Gate({ children }) {
   const [agreement, setAgreement] = useState(null);
 
   const [email, setEmail] = useState(rememberedEmail);
+  // The organizer sign-in has its OWN identifier field (username or
+  // email) — it no longer borrows the tester's email field above,
+  // which is what kept stranding autofill (V0.3.2).
+  const [username, setUsername] = useState(rememberedEmail);
   const [password, setPassword] = useState("");
   const [pwMode, setPwMode] = useState(false);
   const [code, setCode] = useState("");
@@ -173,20 +178,24 @@ export default function Gate({ children }) {
 
   const signInPw = async () => {
     setError("");
-    if (!email.trim()) {
-      // Autofill often drops the password in alone — never leave the
-      // organizer staring at a button that silently does nothing.
-      setError("Enter your email address in the field above first — the password signs in that account.");
+    const id = username.trim();
+    if (!id) {
+      // Never leave the organizer staring at a button that silently
+      // does nothing.
+      setError("Enter your username first — the password signs in with it.");
       return;
     }
     setBusy(true);
     try {
-      await api.signInWithPassword(email.trim(), password);
-      rememberEmail(email.trim());
+      // A short username resolves to the organizer's account email
+      // on-device; a full email address works too.
+      const loginEmail = id.includes("@") ? id : ADMIN_USERNAMES[id.toLowerCase()] || id;
+      await api.signInWithPassword(loginEmail, password);
+      rememberEmail(id);
       const sess = await api.getSession();
       if (sess) await evaluate(sess);
     } catch {
-      setError("That email and password didn't match. Passwords are case-sensitive — check the details and try again.");
+      setError("That username and password didn't match. Passwords are case-sensitive — check the details and try again.");
     } finally {
       setBusy(false);
     }
@@ -320,14 +329,29 @@ export default function Gate({ children }) {
           )}
           {!pwMode ? (
             <button type="button" className="text-btn" data-testid="gate-pw-mode" onClick={() => setPwMode(true)}>
-              Organizer? Sign in with a password
+              Organizer? Sign in with a username + password
             </button>
           ) : (
             <div className="panel rise">
               <p className="hint" style={{ marginTop: 0 }}>
-                For the organizer's own account — sign in with the email address above and its password. Beta testers
-                don't need this; the email link above is theirs.
+                For the organizer's own account — username and password, no email link and no waiting on the email
+                limit. Beta testers don't need this; the email link above is theirs.
               </p>
+              <label className="field-label" htmlFor="gate-username">
+                Username or email
+              </label>
+              <input
+                id="gate-username"
+                data-testid="gate-username"
+                className="input"
+                type="text"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                placeholder="Your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
               <label className="field-label" htmlFor="gate-password">
                 Password
               </label>
@@ -349,7 +373,7 @@ export default function Gate({ children }) {
                   disabled={busy || !password}
                   onClick={signInPw}
                 >
-                  Sign in with password
+                  Sign in
                 </button>
               </div>
             </div>
