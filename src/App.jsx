@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.11
+/* AXZIO | ARRIVAL — V0.2.12
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -34,6 +34,9 @@ const Admin = lazy(() => import("./admin.jsx"));
    V0.2.11 aligns the buttons (Jesse): Back / View card / Continue
    share one grid row and one format — same height, same type, role
    shown by color alone (neutral / outlined cyan / filled).
+   V0.2.12 removes Back on the Step-4 card (Jesse): there it conflicts
+   with Edit answers — two doors back into editing. On the card, Edit
+   answers is the one way in; Back belongs to the editing steps.
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -652,7 +655,7 @@ function Journey() {
             )}
 
             <nav className="nav-row">
-              {stage > 1 ? (
+              {stage > 1 && stage < 4 ? (
                 <button type="button" className="btn btn-ghost nav-slot-l" data-testid="back" onClick={goBack}>
                   Back
                 </button>
@@ -788,7 +791,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.11 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.12 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

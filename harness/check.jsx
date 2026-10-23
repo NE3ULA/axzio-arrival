@@ -200,6 +200,7 @@ check("card shows choice", cardText.includes("Ship the first ARRIVAL release."))
 check("card shows next action", cardText.includes("Mix one song tonight for 25 minutes."));
 check("card shows a date", /\d{4}/.test(cardText) && cardText.includes("·"));
 check("card carries LIVE YOUR LEGEND", cardText.includes("LIVE YOUR LEGEND"));
+check("no back button on the card — Edit answers is the one way back in", !tid("back") && !!tid("edit-answers"));
 check("session persisted as draft at stage 4", stored().status === "draft" && stored().stage === 4);
 
 // 8. Close + reopen mid-journey — progress intact

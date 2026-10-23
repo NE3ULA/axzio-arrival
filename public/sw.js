@@ -9,7 +9,7 @@
  *  - Cross-origin requests (the beta backend) are never intercepted.
  * Bump CACHE_VERSION whenever the shell strategy changes; activation
  * purges every older cache. */
-const CACHE_VERSION = "arrival-v12";
+const CACHE_VERSION = "arrival-v13";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
