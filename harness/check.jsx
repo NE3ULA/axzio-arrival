@@ -229,7 +229,7 @@ root = await mount();
 check("reopen on begun session shows card home", !!tid("complete") && !!tid("identity-card"));
 
 // Persistent navigation: present even with a single card
-check("deck tabs are always available", !!tid("nav-deck") && !!tid("nav-current"));
+check("deck tabs are always available", !!tid("nav-deck") && !!tid("nav-current") && !!tid("nav-priority"));
 click(tid("nav-deck"));
 check("deck shows the one card, marked current", !!tid("deck") && tid(`deck-card-${stored().id}`).textContent.includes("Current"));
 click(tid("nav-current"));
@@ -325,6 +325,10 @@ type(tid("state-note"), "Priority draft two.");
 click(tid("nav-deck"));
 check("two live cards are held", $$('[data-testid^="deck-card-"]').length === 2);
 check("with two live cards and no choice, the priority slot asks", !!tid("priority-empty") && document.body.textContent.includes("No priority set"));
+click(tid("nav-priority"));
+check("priority tab with no priority shows the choosing screen", !!tid("priority-empty-view") && document.body.textContent.includes("No priority card yet"));
+click(tid("priority-open-deck"));
+check("choosing screen leads to the deck", !!tid("deck"));
 const secondDraftId = storedAll().find((s) => s.status === "draft" && s.stateNote === "Priority draft two.").id;
 click(tid(`deck-star-${secondDraftId}`));
 check("star flags exactly one priority card", storedAll().filter((s) => s.priority).length === 1 && storedAll().find((s) => s.priority).id === secondDraftId);
@@ -335,11 +339,16 @@ check(
 check("priority card is not duplicated elsewhere in the deck", $$('[data-testid^="deck-card-"]').length === 2);
 
 click(tid("nav-current"));
-check("current tab opens the priority card", !!tid("state-note") && tid("state-note").value === "Priority draft two.");
+check("current tab opens the working card (here, also the priority)", !!tid("state-note") && tid("state-note").value === "Priority draft two.");
 
+click(tid("nav-deck"));
 click(tid("nav-deck"));
 click(tid(`deck-card-${firstBegunId}`));
 check("the other card's view offers the priority action", !!tid("set-priority"));
+click(tid("nav-priority"));
+check("priority tab opens the priority card, not the working card", !!tid("state-note") && tid("state-note").value === "Priority draft two.");
+click(tid("nav-deck"));
+click(tid(`deck-card-${firstBegunId}`));
 click(tid("set-priority"));
 check("priority moves — still exactly one", storedAll().filter((s) => s.priority).length === 1 && storedAll().find((s) => s.priority).id === firstBegunId);
 check("the card view wears the priority badge", !!tid("priority-badge") && tid("priority-badge").textContent.includes("Priority card"));

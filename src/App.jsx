@@ -6,7 +6,7 @@ import Gate from "./gate.jsx";
 
 const Admin = lazy(() => import("./admin.jsx"));
 
-/* AXZIO | ARRIVAL — V0.2.13
+/* AXZIO | ARRIVAL — V0.3.0
    A single guided journey: Awareness → Arrival → Choice → Action.
    Finished journeys become cards in a persistent on-device deck —
    beginning a new arrival adds a card, it never replaces one.
@@ -39,6 +39,11 @@ const Admin = lazy(() => import("./admin.jsx"));
    answers is the one way in; Back belongs to the editing steps.
    V0.2.13 drops the "One Thing" name (Jesse): the feature is simply
    the priority card — heading, badge, button, and deck copy renamed.
+   V0.3.0 isolates Priority from Current with a third tab (Jesse):
+   Priority (the designated card; a choosing screen when none is set),
+   Current (the card being worked on — the tab now reopens exactly
+   that, never the priority), Deck (everything held). Priority changes
+   only by a deliberate star, never as a side effect of opening a card.
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -289,6 +294,11 @@ function Journey() {
   const [sessions, setSessions] = useState(boot.sessions);
   const [activeId, setActiveId] = useState(boot.activeId);
   const [view, setView] = useState(boot.view);
+  // Three isolated lenses (V0.3.0): Priority (the designated card),
+  // Current (the card being worked on), Deck (everything held).
+  const [tab, setTab] = useState(() =>
+    boot.view === "stack" ? "deck" : priorityOf(boot.sessions)?.id === boot.activeId ? "priority" : "current"
+  );
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -400,8 +410,22 @@ function Journey() {
     setConfirmDelete(false);
     setExportNote("");
     setEditing(false);
+    setTab("current");
     setActiveId(s.id);
     setView(s.status === "draft" ? "journey" : "card");
+  };
+
+  /* The Priority tab opens the priority card — and only that. With no
+     priority chosen, it shows the choosing screen instead of guessing. */
+  const openPriority = () => {
+    if (priority) {
+      openSession(priority);
+      setTab("priority");
+    } else {
+      setEditing(false);
+      setView("priority");
+      setTab("priority");
+    }
   };
 
   /* Beginning a new arrival only ever ADDS a card. An untouched blank
@@ -411,6 +435,7 @@ function Journey() {
     setConfirmDelete(false);
     setExportNote("");
     setEditing(false);
+    setTab("current");
     const blank = sessions.find((s) => s.status === "draft" && !sessionHasContent(s));
     if (blank) {
       setActiveId(blank.id);
@@ -438,9 +463,11 @@ function Journey() {
       setSessions([s]);
       setActiveId(s.id);
       setView("journey");
+      setTab("current");
     } else {
       setSessions(rest);
       setView("stack");
+      setTab("deck");
     }
   };
 
@@ -457,6 +484,7 @@ function Journey() {
     setSessions([s]);
     setActiveId(s.id);
     setView("journey");
+    setTab("current");
   };
 
   /* One-time bootstrap for the organizer: while signed in (one email
@@ -511,17 +539,28 @@ function Journey() {
         <nav className="topnav" aria-label="Navigation">
           <button
             type="button"
+            data-testid="nav-priority"
+            className={`topnav-btn${tab === "priority" ? " on" : ""}`}
+            onClick={openPriority}
+          >
+            Priority
+          </button>
+          <button
+            type="button"
             data-testid="nav-current"
-            className={`topnav-btn${view !== "stack" ? " on" : ""}`}
-            onClick={() => openSession(priority || session)}
+            className={`topnav-btn${tab === "current" ? " on" : ""}`}
+            onClick={() => openSession(session)}
           >
             Current
           </button>
           <button
             type="button"
             data-testid="nav-deck"
-            className={`topnav-btn${view === "stack" ? " on" : ""}`}
-            onClick={() => setView("stack")}
+            className={`topnav-btn${tab === "deck" ? " on" : ""}`}
+            onClick={() => {
+              setView("stack");
+              setTab("deck");
+            }}
           >
             Deck · {deckCount}
           </button>
@@ -536,6 +575,29 @@ function Journey() {
             onNew={beginNewArrival}
             onSetPriority={setPriority}
           />
+        ) : view === "priority" ? (
+          <main className="stage-wrap" data-testid="priority-empty-view">
+            <section className="stage rise">
+              <h1 className="q">Priority card</h1>
+              <p className="hint">
+                No priority card yet. Your priority card is the one that matters most — it's held at the top of your
+                deck, apart from the rest. Star a card in the deck to choose it.
+              </p>
+              <div className="action-col">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  data-testid="priority-open-deck"
+                  onClick={() => {
+                    setView("stack");
+                    setTab("deck");
+                  }}
+                >
+                  Choose in the deck
+                </button>
+              </div>
+            </section>
+          </main>
         ) : inFlow || editing ? (
           <main className="stage-wrap" key={`${stage}-${session.cstep || 1}`}>
             <Progress stage={stage} />
@@ -793,7 +855,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.13 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.3.0 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>
