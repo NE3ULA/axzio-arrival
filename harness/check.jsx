@@ -297,6 +297,54 @@ check(
   afterAll.length === 1 && afterAll[0].state === "" && afterAll[0].stateNote === "" && afterAll[0].status === "draft"
 );
 
+// The One Thing (V0.2.7): one priority card, separated from the rest.
+// (Continues from the cleared state: one blank draft, journey at stage 1.)
+click(tid("state-Clear"));
+type(tid("state-note"), "First arrival note.");
+click(tid("continue"));
+type(tid("matters"), "First matters.");
+click(tid("continue"));
+type(tid("choice"), "First choice.");
+click(tid("continue"));
+type(tid("step"), "First step.");
+click(tid("continue"));
+click(tid("begin"));
+const firstBegunId = stored().id;
+check("first card begun for the priority scenario", storedAll().length === 1 && stored().status === "begun");
+
+click(tid("new-arrival"));
+click(tid("state-Stuck"));
+type(tid("state-note"), "Priority draft two.");
+click(tid("nav-deck"));
+check("two live cards are held", $$('[data-testid^="deck-card-"]').length === 2);
+check("with two live cards and no choice, the One Thing slot asks", !!tid("onething-empty") && document.body.textContent.includes("No priority set"));
+const secondDraftId = storedAll().find((s) => s.status === "draft" && s.stateNote === "Priority draft two.").id;
+click(tid(`deck-star-${secondDraftId}`));
+check("star flags exactly one priority card", storedAll().filter((s) => s.priority).length === 1 && storedAll().find((s) => s.priority).id === secondDraftId);
+check(
+  "priority card sits in its own One Thing section",
+  !!tid("onething") && tid("onething").contains(tid(`deck-card-${secondDraftId}`)) && tid(`deck-card-${secondDraftId}`).textContent.includes("The One Thing")
+);
+check("priority card is not duplicated elsewhere in the deck", $$('[data-testid^="deck-card-"]').length === 2);
+
+click(tid("nav-current"));
+check("current tab opens the priority card", !!tid("state-note") && tid("state-note").value === "Priority draft two.");
+
+click(tid("nav-deck"));
+click(tid(`deck-card-${firstBegunId}`));
+check("the other card's view offers the One Thing action", !!tid("set-priority"));
+click(tid("set-priority"));
+check("priority moves — still exactly one", storedAll().filter((s) => s.priority).length === 1 && storedAll().find((s) => s.priority).id === firstBegunId);
+check("the card view wears the One Thing badge", !!tid("priority-badge") && tid("priority-badge").textContent.includes("The One Thing"));
+
+click(tid("complete"));
+check("completing the priority card clears its flag", storedAll().every((s) => !s.priority));
+click(tid("nav-deck"));
+check(
+  "the last live card stands as the One Thing on its own",
+  !!tid("onething") && tid("onething").textContent.includes("Priority draft two.")
+);
+
 act(() => root.unmount());
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

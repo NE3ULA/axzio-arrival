@@ -16,6 +16,9 @@ const Admin = lazy(() => import("./admin.jsx"));
    a missing email explains itself instead of a silent disabled button).
    V0.2.6 gives Step 1 a Back button (steps out to the deck — the draft
    is already saved, so leaving loses nothing).
+   V0.2.7 adds the One Thing: one priority card, starred, held apart at
+   the top of the deck in gold; the Current tab opens it. A single live
+   card stands as the priority on its own.
    Deterministic, authored prompts only — no AI is implied or used.
    All data stays in localStorage on the user's device. */
 
@@ -114,6 +117,15 @@ function sessionTitle(s) {
   return (s.choice || "").trim() || (s.matters || "").trim() || (s.stateNote || "").trim() || "Untitled arrival";
 }
 
+/* The One Thing: exactly one live card holds priority. The starred
+   card keeps it across visits; with a single live card, that card
+   stands as the priority on its own — no ceremony for the simple
+   case. Completed cards are history and never hold priority. */
+function priorityOf(sessions) {
+  const eligible = sessions.filter((s) => s.status === "begun" || (s.status === "draft" && sessionHasContent(s)));
+  return eligible.find((s) => s.priority) || (eligible.length === 1 ? eligible[0] : null);
+}
+
 /* Landing rule: no cards yet → straight into a fresh journey; exactly
    one card → open on it (a draft resumes mid-journey; a begun/completed
    card shows itself); more than one → the stack is home. */
@@ -131,38 +143,67 @@ function initJourneyState() {
   return { sessions: stored, activeId: latest.id, view: "stack" };
 }
 
-/* The deck — home base for everything you hold. Open cards first,
-   in-progress drafts resumable, completed cards kept as history. The
-   card you're working on is marked Current; tapping any card opens it
-   and makes it current. Beginning a new arrival adds to the deck; it
-   never replaces. */
-function DeckView({ sessions, activeId, onOpen, onNew }) {
-  const drafts = sessions
+/* The deck — home base for everything you hold. The One Thing — the
+   one priority card — is held apart at the top; the rest follow as
+   in-progress drafts, open cards, and completed history. The card
+   you're working on is marked Current; tapping any card opens it.
+   Beginning a new arrival adds to the deck; it never replaces. */
+function DeckView({ sessions, activeId, priorityId, onOpen, onNew, onSetPriority }) {
+  const rest = sessions.filter((s) => s.id !== priorityId);
+  const drafts = rest
     .filter((s) => s.status === "draft" && sessionHasContent(s))
     .sort((a, b) => b.createdAt - a.createdAt);
-  const open = sessions
+  const open = rest
     .filter((s) => s.status === "begun")
     .sort((a, b) => (b.begunAt || 0) - (a.begunAt || 0));
-  const done = sessions
+  const done = rest
     .filter((s) => s.status === "completed")
     .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+  const priority = sessions.find((s) => s.id === priorityId) || null;
+  const liveCount = sessions.filter((s) => s.status === "begun" || (s.status === "draft" && sessionHasContent(s))).length;
+  const heldCount = sessions.filter((s) => s.status !== "draft" || sessionHasContent(s)).length;
 
-  const row = (s, meta, sub) => (
-    <button
-      key={s.id}
-      type="button"
-      className={`stack-row${s.id === activeId ? " current" : ""}`}
-      data-testid={`deck-card-${s.id}`}
-      aria-current={s.id === activeId || undefined}
-      onClick={() => onOpen(s)}
-    >
-      <div className="stack-title">{sessionTitle(s)}</div>
-      {sub ? <div className="stack-sub">{sub}</div> : null}
-      <div className="stack-meta">
-        {s.id === activeId ? "● Current · " : ""}
-        {meta}
-      </div>
-    </button>
+  const metaFor = (s) =>
+    s.status === "draft" ? `Step ${s.stage} of 4 · tap to resume` : s.status === "begun" ? `Begun · ${formatDay(s.begunAt)}` : `Completed · ${formatDay(s.completedAt)}`;
+  const subFor = (s) =>
+    s.status === "draft"
+      ? (s.matters || "").trim()
+        ? `What matters: ${s.matters.trim()}`
+        : ""
+      : s.step
+        ? `${s.status === "begun" ? "Next action" : "Action"}: ${s.step}`
+        : "";
+
+  const row = (s) => (
+    <div key={s.id} className={`stack-row${s.id === activeId ? " current" : ""}${s.id === priorityId ? " priority" : ""}`}>
+      <button
+        type="button"
+        className="stack-open"
+        data-testid={`deck-card-${s.id}`}
+        aria-current={s.id === activeId || undefined}
+        onClick={() => onOpen(s)}
+      >
+        <div className="stack-title">{sessionTitle(s)}</div>
+        {subFor(s) ? <div className="stack-sub">{subFor(s)}</div> : null}
+        <div className="stack-meta">
+          {s.id === priorityId ? "★ The One Thing · " : ""}
+          {s.id === activeId ? "● Current · " : ""}
+          {metaFor(s)}
+        </div>
+      </button>
+      {s.id !== priorityId && s.status !== "completed" && (
+        <button
+          type="button"
+          className="star-btn"
+          data-testid={`deck-star-${s.id}`}
+          aria-label="Make this card the One Thing"
+          title="Make this the One Thing"
+          onClick={() => onSetPriority(s)}
+        >
+          ☆
+        </button>
+      )}
+    </div>
   );
 
   return (
@@ -170,40 +211,48 @@ function DeckView({ sessions, activeId, onOpen, onNew }) {
       <section className="stage rise">
         <h1 className="q">Your deck</h1>
         <p className="hint">
-          Every card you hold — open, in progress, and completed. Tap a card to open it; the one you're working on is
-          marked Current.
+          Every card you hold. One of them is the One Thing — your priority, held apart at the top. Tap ☆ on any live
+          card to make it the One Thing; tap a card to open it.
         </p>
+
+        {priority ? (
+          <>
+            <h2 className="stack-h onething">★ The One Thing</h2>
+            <div className="stack-list" data-testid="onething">
+              {row(priority)}
+            </div>
+          </>
+        ) : liveCount > 1 ? (
+          <>
+            <h2 className="stack-h onething">★ The One Thing</h2>
+            <p className="hint" data-testid="onething-empty">
+              No priority set — tap ☆ on the one card that matters most, and it will be held here, apart from the rest.
+            </p>
+          </>
+        ) : null}
 
         {drafts.length > 0 && (
           <>
             <h2 className="stack-h">In progress</h2>
-            <div className="stack-list">
-              {drafts.map((s) =>
-                row(s, `Step ${s.stage} of 4 · tap to resume`, (s.matters || "").trim() ? `What matters: ${s.matters.trim()}` : "")
-              )}
-            </div>
+            <div className="stack-list">{drafts.map((s) => row(s))}</div>
           </>
         )}
 
         {open.length > 0 && (
           <>
             <h2 className="stack-h">Open</h2>
-            <div className="stack-list">
-              {open.map((s) => row(s, `Begun · ${formatDay(s.begunAt)}`, s.step ? `Next action: ${s.step}` : ""))}
-            </div>
+            <div className="stack-list">{open.map((s) => row(s))}</div>
           </>
         )}
 
         {done.length > 0 && (
           <>
             <h2 className="stack-h">Completed</h2>
-            <div className="stack-list">
-              {done.map((s) => row(s, `Completed · ${formatDay(s.completedAt)}`, s.step ? `Action: ${s.step}` : ""))}
-            </div>
+            <div className="stack-list">{done.map((s) => row(s))}</div>
           </>
         )}
 
-        {drafts.length + open.length + done.length === 0 && <p className="hint">No cards yet — your next arrival will live here.</p>}
+        {heldCount === 0 && <p className="hint">No cards yet — your next arrival will live here.</p>}
 
         <div className="action-col">
           <button type="button" className="btn btn-primary" data-testid="deck-new" onClick={onNew}>
@@ -233,6 +282,9 @@ function Journey() {
 
   const session = sessions.find((s) => s.id === activeId) || sessions[0] || newSession();
   const deckCount = sessions.filter((s) => s.status !== "draft" || sessionHasContent(s)).length;
+  const priority = priorityOf(sessions);
+  const priorityId = priority ? priority.id : null;
+  const setPriority = (target) => setSessions((list) => list.map((s) => ({ ...s, priority: s.id === target.id })));
 
   useEffect(() => {
     api.getSession().then((s) => setMe(s ? s.user : null)).catch(() => {});
@@ -299,7 +351,7 @@ function Journey() {
     update({ status: "begun", begunAt: Date.now() });
     setView("card");
   };
-  const complete = () => update({ status: "completed", completedAt: Date.now() });
+  const complete = () => update({ status: "completed", completedAt: Date.now(), priority: false });
 
   const openSession = (s) => {
     setConfirmDelete(false);
@@ -416,7 +468,7 @@ function Journey() {
             type="button"
             data-testid="nav-current"
             className={`topnav-btn${view !== "stack" ? " on" : ""}`}
-            onClick={() => openSession(session)}
+            onClick={() => openSession(priority || session)}
           >
             Current
           </button>
@@ -431,7 +483,14 @@ function Journey() {
         </nav>
 
         {view === "stack" ? (
-          <DeckView sessions={sessions} activeId={session.id} onOpen={openSession} onNew={beginNewArrival} />
+          <DeckView
+            sessions={sessions}
+            activeId={session.id}
+            priorityId={priorityId}
+            onOpen={openSession}
+            onNew={beginNewArrival}
+            onSetPriority={setPriority}
+          />
         ) : inFlow ? (
           <main className="stage-wrap" key={`${stage}-${session.cstep || 1}`}>
             <Progress stage={stage} />
@@ -582,11 +641,21 @@ function Journey() {
               <div className={`status-pill ${session.status}`}>
                 {session.status === "begun" ? `Begun · ${formatWhen(session.begunAt)}` : `Completed · ${formatWhen(session.completedAt)}`}
               </div>
+              {session.id === priorityId ? (
+                <div className="priority-pill" data-testid="priority-badge">
+                  ★ The One Thing — your priority card
+                </div>
+              ) : null}
               <Card session={session} />
               <p className="closing" data-testid="closing">
                 LIVE YOUR LEGEND.
               </p>
               <div className="action-col">
+                {session.status !== "completed" && session.id !== priorityId && (
+                  <button type="button" className="btn btn-ghost" data-testid="set-priority" onClick={() => setPriority(session)}>
+                    ★ Make this the One Thing
+                  </button>
+                )}
                 {session.status === "begun" && (
                   <button type="button" className="btn btn-primary" data-testid="complete" onClick={complete}>
                     Mark action complete
@@ -655,7 +724,7 @@ function Journey() {
               ) : null}
             </div>
           )}
-          <span className="foot-build">ARRIVAL V0.2.6 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
+          <span className="foot-build">ARRIVAL V0.2.7 · build {typeof __BUILD_SHA__ !== "undefined" ? __BUILD_SHA__ : "dev"}</span>
         </footer>
       </div>
     </div>

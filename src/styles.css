@@ -749,18 +749,43 @@ body {
   gap: 10px;
 }
 .stack-row {
-  display: block;
+  display: flex;
+  align-items: center;
   width: 100%;
-  text-align: left;
   border-radius: 16px;
-  padding: 15px 17px;
   background: linear-gradient(165deg, rgba(21, 36, 84, 0.55), rgba(7, 11, 28, 0.7));
   border: 1px solid rgba(86, 200, 245, 0.28);
   color: var(--ink);
-  cursor: pointer;
 }
 .stack-row:hover {
   border-color: rgba(86, 200, 245, 0.6);
+}
+.stack-open {
+  flex: 1;
+  display: block;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 15px 17px;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+}
+.star-btn {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin-right: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 95, 0.5);
+  background: rgba(212, 175, 95, 0.08);
+  color: #d4af5f;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.star-btn:hover {
+  background: rgba(212, 175, 95, 0.18);
 }
 .stack-title {
   font-size: 17px;
@@ -822,4 +847,27 @@ body {
   box-shadow:
     0 0 0 1px rgba(86, 200, 245, 0.4),
     0 0 24px rgba(86, 200, 245, 0.14);
+}
+
+/* ---- the One Thing (V0.2.7): gold sets the priority card apart ---- */
+.stack-row.priority {
+  border-color: rgba(212, 175, 95, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 95, 0.4),
+    0 0 24px rgba(212, 175, 95, 0.14);
+}
+.stack-h.onething {
+  color: #d4af5f;
+}
+.priority-pill {
+  align-self: center;
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #d4af5f;
+  border: 1px solid rgba(212, 175, 95, 0.5);
+  background: rgba(212, 175, 95, 0.08);
+  border-radius: 999px;
+  padding: 8px 16px;
+  margin-bottom: 20px;
 }
